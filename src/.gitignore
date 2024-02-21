@@ -1,0 +1,3 @@
+# ignore uncompiled ts
+*.js
+*.js.map

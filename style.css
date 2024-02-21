@@ -1,0 +1,58 @@
+bar {
+    background-color: #051926;
+}
+
+body {
+    margin: 2vw;
+    font-family: "Source Sans 3", sans-serif;
+    background-color: #2d3951;
+    color: #e1eded;
+}
+
+.terminal {
+    border-radius: 2.5%;
+    font-family: "IBM Plex Mono", monospace;
+    width: 36vw;
+    height: 36vw;
+    background-color: #051926;
+    font-size: 1.5em;
+    padding: 1vw;
+    overflow: auto;
+    flex-direction: column-reverse;
+    box-shadow: 2.5vw 2.5vw 50px #9ea5ff07;
+}
+
+.terminal:hover {
+    cursor: text;
+}
+
+.line::before {
+    content: '[user@pc]# ';
+    color: #a2a0cd;
+}
+
+.line {
+    margin: 0;
+}
+
+.lineError::before {
+    content: "error: ";
+    color: #ba1b1b;
+}
+
+.lineError {
+    color: #ba1b1b;
+}
+
+.cliInput {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.cliInput:focus, .cliInput:focus-visible {
+    outline: none;
+    border: none;
+}
