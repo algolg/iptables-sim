@@ -23,7 +23,9 @@ function pushToHistory(ele, text) {
     newLine.innerText = text;
 
     histEle.appendChild(newLine);
-    hist.push(text);
+    if (text != "") {
+        hist.push(text);
+    }
 }
 
 function addCommandToHistory(ele) {
@@ -49,6 +51,7 @@ function processCommand(ele, command) {
         } catch (error) {
             pushError(ele, error, "ipTables")
         }
+        return;
     }
     else {
         pushError(ele, "command not found...");
@@ -56,25 +59,27 @@ function processCommand(ele, command) {
     }
 }
 
-let cliInput = document.getElementById("cliInput") as HTMLInputElement;
-cliInput.addEventListener("keyup", ({key}) => {
-    switch (key) {
-        case "ArrowUp":
-            if (indexAdjust >= 0 && indexAdjust < hist.length) {
-                indexAdjust++;
-                cliInput.value = hist[hist.length - indexAdjust];
-            }
-            break;
-        case "ArrowDown":
-            if (indexAdjust > 1 && indexAdjust <= hist.length) {
-                indexAdjust--;
-                cliInput.value = hist[hist.length - indexAdjust];
-            }
-            break;
-        case "Enter":
-            addCommandToHistory(cliInput);
-            const terminal = cliInput.parentElement!.parentElement!;
-            terminal.scrollTop = terminal.scrollHeight;
-            indexAdjust = 0;
-    }
-})
+let cliInputs = document.getElementsByClassName("cliInput") as HTMLCollectionOf<HTMLInputElement>;
+Array.from(cliInputs).forEach(element => {
+    element.addEventListener("keyup", ({key}) => {
+        switch (key) {
+            case "ArrowUp":
+                if (indexAdjust >= 0 && indexAdjust < hist.length) {
+                    indexAdjust++;
+                    element.value = hist[hist.length - indexAdjust];
+                }
+                break;
+            case "ArrowDown":
+                if (indexAdjust > 1 && indexAdjust <= hist.length) {
+                    indexAdjust--;
+                    element.value = hist[hist.length - indexAdjust];
+                }
+                break;
+            case "Enter":
+                addCommandToHistory(element);
+                const terminal = element.parentElement!.parentElement!;
+                terminal.scrollTop = terminal.scrollHeight;
+                indexAdjust = 0;
+        }
+    })
+});

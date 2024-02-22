@@ -27,16 +27,15 @@ export function splitByFlags(command) {
     return new Command(commandName, args);
 }
 export function processIPTables(command) {
-    //let rulesetName: string;
-    //let append: boolean = false;
-    let added = false;
+    let hasAppend = false;
+    let hasTarget = false;
     let rule = new Rule();
     command.args.forEach((arg) => {
         switch (arg.flag) {
             case 'A':
             case 'append':
                 addToRulesets(arg.value, rule);
-                added = true;
+                hasAppend = true;
                 break;
             case 'i':
             case 'in-interface':
@@ -90,13 +89,17 @@ export function processIPTables(command) {
                     throw new Error("invalid target");
                 }
                 rule.protocol = Action[arg.value];
+                hasTarget = true;
                 break;
             default:
                 throw new Error("unknown flag: " + arg.flag);
         }
     });
-    if (!added) {
+    if (!hasAppend) {
         throw new Error("no command specified");
+    }
+    if (!hasTarget) {
+        throw new Error("no target action specified");
     }
 }
 //# sourceMappingURL=command.js.map

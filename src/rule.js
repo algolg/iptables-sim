@@ -75,7 +75,24 @@ function tryReadIntInRange(str, lowerBound, upperBound) {
     }
     return true;
 }
-// TODO: REVERT IP ADDRESS TO NETWORK ADDRESS IF IP AND MASK ARE VALID
+function getNetworkAddress(ipAddress, mask) {
+    let fullOctets = Math.floor(mask / 8);
+    let leftOver = 0;
+    for (let i = 0; i < mask % 8; i++) {
+        leftOver += Math.pow(2, 7 - i);
+    }
+    let netAddress = [];
+    for (let i = 0; i < 4; i++) {
+        let AND = 255;
+        if (fullOctets <= 0) {
+            AND = leftOver;
+            leftOver = 0;
+        }
+        netAddress.push(ipAddress[i] & AND);
+        fullOctets--;
+    }
+    return netAddress;
+}
 export function tryReadIP(ipString) {
     // try to read mask (if provided)
     let ipStringArr = ipString.split("/");
@@ -104,7 +121,7 @@ export function tryReadIP(ipString) {
     if (numberIP.length != 4) {
         throw new Error("invalid ip address");
     }
-    return new Network(numberIP, numberMask);
+    return new Network(getNetworkAddress(numberIP, numberMask), numberMask);
 }
 export function tryReadPort(portString) {
     let ports = [];
