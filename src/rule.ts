@@ -59,7 +59,7 @@ function tryReadIntInRange(str: string, lowerBound: number, upperBound: number) 
         return false;
     }
     let attempt = parseInt(str);
-    if (attempt < lowerBound || attempt > upperBound) {
+    if (isNaN(attempt) || attempt < lowerBound || attempt > upperBound) {
         return false;
     }
     return true;

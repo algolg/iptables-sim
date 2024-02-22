@@ -13,7 +13,7 @@ export class Command {
     }
 }
 export function splitByFlags(command) {
-    command = command.replace("--", "-");
+    command = command.replace(/--/g, "-");
     const words = command.split(" -");
     const commandName = words[0];
     let args = [];
