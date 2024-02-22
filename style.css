@@ -10,12 +10,12 @@ body {
 }
 
 .terminal {
-    border-radius: 2.5%;
+    border-radius: 0.9vw;
     font-family: "IBM Plex Mono", monospace;
-    width: 36vw;
+    /* width: 36vw; */
     height: 36vw;
     background-color: #051926;
-    font-size: 1.5em;
+    font-size: 1.25em;
     padding: 1vw;
     overflow: auto;
     flex-direction: column-reverse;
@@ -36,17 +36,26 @@ body {
 }
 
 .lineError::before {
+    margin: 0;
     content: "error: ";
     color: #ba1b1b;
 }
 
-.lineError {
+.lineError, .ipTables {
+    margin: 0;
+    color: #ba1b1b;
+}
+
+.ipTables::before {
+    margin: 0;
+    content: "iptables: ";
     color: #ba1b1b;
 }
 
 .cliInput {
     background: transparent;
     border: none;
+    width: 90%; /* will find a better solution for this later */
     color: inherit;
     font-family: inherit;
     font-size: inherit;
