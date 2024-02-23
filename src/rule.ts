@@ -1,23 +1,9 @@
+import { Network, AddressPort, Protocol, State } from "./segment.js";
+
 export var rulesets: Ruleset[] = [];
 
-class Network {
-    ip: number[];
-    mask: number;
-
-    constructor(ip: number[] = [0,0,0,0], mask: number = 32) {
-        this.ip = ip;
-        this.mask = mask;
-    }
-}
-
-class AddressPort {
-    network: Network = new Network();
-    ports: number[] = [];
-}
-
+export enum Chain { INPUT = 0, OUTPUT = 1 };
 export enum Interface { lo = 0, eth0 = 1 };
-export enum Protocol { tcp = 0, udp = 1, icmp = 2, all = 3 };
-export enum State { INVALID = 0, ESTABLISHED = 1, NEW = 2, RELATED = 3 };
 export enum Action { DROP = 0, ACCEPT = 1 };
 
 export class Rule {
@@ -27,30 +13,30 @@ export class Rule {
     source: AddressPort = new AddressPort();
     dest: AddressPort = new AddressPort();
     // conntrack: boolean = false;
-    // cstate: State[] = [];
+    // cstate: State[] = [0];
     action: Action;
 }
 
 export class Ruleset {
-    name: string;
+    chain: Chain;
     rules: Rule[] = [];
 
-    constructor(name: string, rules: Rule = null) {
-        this.name = name;
+    constructor(chain: Chain, rules: Rule = null) {
+        this.chain = chain;
         if (rules != null) {
             this.rules.push(rules);
         }
     }
 }
 
-export function addToRulesets(rulesetName: string, newRule: Rule) {
+export function addToRulesets(rulesetChain: Chain, newRule: Rule) {
     rulesets.forEach((ruleset) => {
-        if (ruleset.name === rulesetName) {
+        if (ruleset.chain === rulesetChain) {
             ruleset.rules.push(newRule);
             return;
         }
     });
-    rulesets.push(new Ruleset(rulesetName, newRule));
+    rulesets.push(new Ruleset(rulesetChain, newRule));
 }
 
 function tryReadIntInRange(str: string, lowerBound: number, upperBound: number) : boolean {
@@ -66,20 +52,11 @@ function tryReadIntInRange(str: string, lowerBound: number, upperBound: number) 
 }
 
 function getNetworkAddress(ipAddress: number[], mask: number) : number[] {
-    let fullOctets = Math.floor(mask / 8);
-    let leftOver = 0;
-    for (let i = 0; i < mask % 8; i++) {
-        leftOver += Math.pow(2, 7 - i);
-    }
     let netAddress: number[] = [];
-    for (let i = 0; i < 4; i++) {
-        let AND = 255;
-        if (fullOctets <= 0) {
-            AND = leftOver;
-            leftOver = 0;
-        }
+    let AND: number;
+    for (let i = 0; i < 4; i++, mask -= 8) {
+        AND = mask >= 8 ? 255 : 256 - Math.pow(2, 8 - mask);
         netAddress.push(ipAddress[i] & AND);
-        fullOctets--;
     }
     return netAddress;
 }

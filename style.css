@@ -9,24 +9,66 @@ body {
     color: #e1eded;
 }
 
-.terminal {
-    border-radius: 0.9vw;
-    font-family: "IBM Plex Mono", monospace;
+.grid-container {
+    display: grid;
+    grid-template-columns: 50% 50%;
+}
+
+.window {
     /* width: 36vw; */
+    margin: 0.5vw;
     height: 36vw;
-    background-color: #051926;
-    font-size: 1.25em;
+    border-radius: 0.9vw;
     padding: 1vw;
     overflow: auto;
-    flex-direction: column-reverse;
     box-shadow: 2.5vw 2.5vw 50px #9ea5ff07;
+}
+
+.terminal {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 1.25em;
+    background-color: #051926;
+    flex-direction: column-reverse;
+    white-space: nowrap;
+    overflow: scroll;
 }
 
 .terminal:hover {
     cursor: text;
 }
 
+.interface {
+    font-size: 1.5em;
+    font-weight: 600;
+    background-color: #9fa4be;
+    color: #fcfdff;
+}
+
+.form {
+    font-size: 0.9em;
+    display: block;
+    border-radius: 0.4vw;
+    outline: 0.25vw transparent;
+    border: transparent;
+    padding: 0.4vw;
+    margin: 0.4vw;
+    background-color: #6678a2;
+    color: #fcfdff;
+}
+.form:focus {
+    outline: 0.25vw solid #baceff;
+    border: #8177d3ee;
+    box-shadow: 10px 10px 20px #33457233;
+}
+.form[type="submit"] {
+    background-color: #495e90;
+}
+.form[type="submit"]:hover {
+    cursor: pointer;
+}
+
 .line::before {
+    width: 10%;
     content: '[user@pc]# ';
     color: #a2a0cd;
 }
@@ -55,7 +97,7 @@ body {
 .cliInput {
     background: transparent;
     border: none;
-    width: 90%; /* will find a better solution for this later */
+    width: 100%;
     color: inherit;
     font-family: inherit;
     font-size: inherit;

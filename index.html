@@ -15,8 +15,25 @@
         <bar>
             <h1>iptables-sim</h1>  
         </bar>
-        <div class="content">
-            <div class="terminal" onclick="focusInput(this)">
+        <div class="grid-container">
+            <div class="window interface">
+                <form>
+                    <label for="sourceIpAddress">source ip address</label>
+                    <input class="form formInput" name="sourceIpAddress" required="required" pattern="([01]?[0-9][0-9]?|2[0-4][0-9]|25[0-5])\.([01]?[0-9][0-9]?|2[0-4][0-9]|25[0-5])\.([01]?[0-9][0-9]?|2[0-4][0-9]|25[0-5])\.([01]?[0-9][0-9]?|2[0-4][0-9]|25[0-5])">
+                    <label for="protocol">protocol</label>
+                    <select class="form formSelect" name="protocol">
+                        <option>icmp ping</option>
+                        <option>ftp (21)</option>
+                        <option>ssh (22)</option>
+                        <option>telnet (23)</option>
+                        <option>http (80)</option>
+                        <option>https (443)</option>
+                        <option>smb (445)</option>
+                    </select>
+                    <input class="form" type="submit" value="submit">
+                </form>
+            </div>
+            <div class="window terminal" onclick="focusInput(this)">
                 <div class="term-history"></div>
                 <p class="line">
                     <input id="cliInput" class="cliInput" type="text">

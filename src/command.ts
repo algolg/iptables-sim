@@ -1,4 +1,5 @@
-import { Rule, addToRulesets, tryReadIP, Protocol, State, Action, Interface, tryReadPort, tryReadPorts } from "./rule.js"
+import { Rule, addToRulesets, tryReadIP, Action, Interface, tryReadPort, tryReadPorts, Chain } from "./rule.js";
+import { Protocol, State } from "./segment.js";
 
 export class Arg {
     flag: string;
@@ -22,6 +23,7 @@ export class Command {
 
 export function splitByFlags(command: string): Command {
     command = command.replace(/--/g, "-");
+    command = command.replace(/\"/g, "");
     const words: string[] = command.split(" -");
     const commandName = words[0];
     let args: Arg[] = [];
@@ -43,13 +45,15 @@ export function processIPTables(command: Command) {
         switch (arg.flag) {
             case 'A':
             case 'append':
-                addToRulesets(arg.value, rule);
+                if (!Object.keys(Chain).includes(arg.value)) {
+                    throw new Error("invalid chain. only INPUT and OUTPUT accepted.");
+                }
+                addToRulesets(Chain[arg.value], rule);
                 hasAppend = true;
                 break;
             case 'i':
             case 'in-interface':
                 if (!Object.keys(Interface).includes(arg.value)) {
-                    console.log(arg.value);
                     throw new Error("invalid interface");
                 }
                 rule.in_inf = Interface[arg.value];

@@ -1,37 +1,16 @@
+import { Network, AddressPort } from "./segment.js";
 export var rulesets = [];
-class Network {
-    constructor(ip = [0, 0, 0, 0], mask = 32) {
-        this.ip = ip;
-        this.mask = mask;
-    }
-}
-class AddressPort {
-    constructor() {
-        this.network = new Network();
-        this.ports = [];
-    }
-}
+export var Chain;
+(function (Chain) {
+    Chain[Chain["INPUT"] = 0] = "INPUT";
+    Chain[Chain["OUTPUT"] = 1] = "OUTPUT";
+})(Chain || (Chain = {}));
+;
 export var Interface;
 (function (Interface) {
     Interface[Interface["lo"] = 0] = "lo";
     Interface[Interface["eth0"] = 1] = "eth0";
 })(Interface || (Interface = {}));
-;
-export var Protocol;
-(function (Protocol) {
-    Protocol[Protocol["tcp"] = 0] = "tcp";
-    Protocol[Protocol["udp"] = 1] = "udp";
-    Protocol[Protocol["icmp"] = 2] = "icmp";
-    Protocol[Protocol["all"] = 3] = "all";
-})(Protocol || (Protocol = {}));
-;
-export var State;
-(function (State) {
-    State[State["INVALID"] = 0] = "INVALID";
-    State[State["ESTABLISHED"] = 1] = "ESTABLISHED";
-    State[State["NEW"] = 2] = "NEW";
-    State[State["RELATED"] = 3] = "RELATED";
-})(State || (State = {}));
 ;
 export var Action;
 (function (Action) {
@@ -47,22 +26,23 @@ export class Rule {
     }
 }
 export class Ruleset {
-    constructor(name, rules = null) {
+    constructor(chain, rules = null) {
         this.rules = [];
-        this.name = name;
+        this.chain = chain;
         if (rules != null) {
             this.rules.push(rules);
         }
     }
 }
-export function addToRulesets(rulesetName, newRule) {
+export function addToRulesets(rulesetChain, newRule) {
     rulesets.forEach((ruleset) => {
-        if (ruleset.name === rulesetName) {
+        if (ruleset.chain === rulesetChain) {
             ruleset.rules.push(newRule);
             return;
         }
     });
-    rulesets.push(new Ruleset(rulesetName, newRule));
+    rulesets.push(new Ruleset(rulesetChain, newRule));
+    console.log(rulesets);
 }
 function tryReadIntInRange(str, lowerBound, upperBound) {
     let hasChars = str.split("").some(character => isNaN(parseInt(character)));
@@ -76,20 +56,11 @@ function tryReadIntInRange(str, lowerBound, upperBound) {
     return true;
 }
 function getNetworkAddress(ipAddress, mask) {
-    let fullOctets = Math.floor(mask / 8);
-    let leftOver = 0;
-    for (let i = 0; i < mask % 8; i++) {
-        leftOver += Math.pow(2, 7 - i);
-    }
     let netAddress = [];
-    for (let i = 0; i < 4; i++) {
-        let AND = 255;
-        if (fullOctets <= 0) {
-            AND = leftOver;
-            leftOver = 0;
-        }
+    let AND;
+    for (let i = 0; i < 4; i++, mask -= 8) {
+        AND = mask >= 8 ? 255 : 256 - Math.pow(2, 8 - mask);
         netAddress.push(ipAddress[i] & AND);
-        fullOctets--;
     }
     return netAddress;
 }
