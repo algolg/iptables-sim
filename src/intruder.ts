@@ -1,4 +1,4 @@
-import { tryReadIP, tryReadPort } from "./rule.js";
+import { Chain, Interface, tryReadIP, tryReadPort } from "./rule.js";
 import { AddressPort, Protocol, Segment, trySendSegment } from "./segment.js";
 
 const portInputParent = document.getElementById("portInputParent");
@@ -42,7 +42,7 @@ intruderForm.onsubmit = function() {
             console.error("invalid protocol selected");
             return;
     }
-    const sent = trySendSegment(segment)
+    const sent = trySendSegment(segment, Chain["INPUT"], Interface["eth0"])
     pushToIntruderHistory(source, dest, protocol, sent);
 
 }

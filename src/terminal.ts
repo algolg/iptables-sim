@@ -1,4 +1,4 @@
-import { processIPTables, splitByFlags } from "./command.js";
+import { processCat, processIPTables, splitByFlags } from "./command.js";
 
 let hist: string[] = [];
 let indexAdjust = 0;
@@ -7,16 +7,7 @@ function focusInput(ele) {
     ele.lastElementChild.firstElementChild.focus();
 } (<any>window).focusInput = focusInput;
 
-function pushLine(ele, text) {
-    let histEle = ele.parentElement.previousElementSibling;
-    let newLine = document.createElement("p");
-    newLine.classList.add("line");
-    newLine.innerText = text;
-
-    histEle.appendChild(newLine);
-}
-
-function pushError(ele, text, className = "lineError") {
+function pushLine(ele, text: string, className = "line") {
     let histEle = ele.parentElement.previousElementSibling;
     let newLine = document.createElement("p");
     newLine.classList.add(className);
@@ -25,13 +16,13 @@ function pushError(ele, text, className = "lineError") {
     histEle.appendChild(newLine);
 }
 
-function pushToHistory(ele, text) {
-    let histEle = ele.parentElement.previousElementSibling;
-    let newLine = document.createElement("p");
-    newLine.classList.add("lineCommand");
-    newLine.innerText = text;
+function pushError(ele, text: string, className = "lineError") {
+    pushLine(ele, text, className);
+}
 
-    histEle.appendChild(newLine);
+function pushToHistory(ele, text: string) {
+    pushLine(ele, text, "lineCommand");
+
     if (text != "") {
         hist.push(text);
     }
@@ -59,6 +50,21 @@ function processCommand(ele, command) {
     if (command == "") {
         // empty command is ok
         return;
+    }
+    else if (command.startsWith("ls")) {
+        pushLine(ele, "README");
+    }
+    else if (command.startsWith("cat")) {
+        try {
+            let output = processCat(command);
+            if (output.length > 0) {
+                for (var line of output) {
+                    pushLine(ele, line);
+                }
+            }
+        } catch (error) {
+            pushError(ele, error);
+        }
     }
     else if (command.startsWith("sudo")) {
         processCommand(ele, command.substring("sudo".length).trim());

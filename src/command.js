@@ -22,16 +22,29 @@ export function splitByFlags(command) {
     for (let i = 1; i < words.length; i++) {
         const tempArgs = words[i].split(" ");
         if (tempArgs.length < 2) {
-            throw new Error("options require arguments");
+            throw "options require arguments";
         }
         args.push(new Arg(tempArgs[0], tempArgs.slice(1).join(',')));
     }
     return new Command(commandName, args);
 }
+export function processCat(command) {
+    const file = command.split('').slice("cat ".length).join('');
+    if (file == "README") {
+        let output = [];
+        output.push("iptables-sim is a simple web-based simulator for basic iptables firewall");
+        output.push("commands, which can be accessed at https://algolg.github.io/iptables-sim.");
+        return output;
+    }
+    else {
+        throw "cat: " + file + ": no such file or directory";
+    }
+}
 export function processIPTables(command, commandStr) {
     let hasAppend = false;
     let hasTarget = false;
     let tryDelete = false;
+    let hasExclusiveAction = false;
     let chainToDeleteFrom;
     let bypass = false;
     let output = [];
@@ -41,32 +54,74 @@ export function processIPTables(command, commandStr) {
             case 'A':
             case 'append':
                 if (!Object.keys(Chain).includes(arg.value)) {
-                    throw new Error("invalid chain. only INPUT and OUTPUT are supported.");
+                    throw "invalid chain. only INPUT and OUTPUT are supported.";
                 }
-                if (tryDelete) {
-                    throw new Error("invalid combination of flags.");
+                if (tryDelete || hasExclusiveAction) {
+                    throw "invalid combination of flags.";
                 }
-                addToRulesets(Chain[arg.value], rule);
+                hasExclusiveAction = true;
                 hasAppend = true;
+                addToRulesets(Chain[arg.value], rule);
+                break;
+            case 'P':
+            case 'policy':
+                const parseArr = arg.value.split(',');
+                if (parseArr.length != 2 || !Object.keys(Action).includes(parseArr[1])) {
+                    throw "invalid default policy.";
+                }
+                if (!Object.keys(Chain).includes(parseArr[0])) {
+                    throw "invalid chain. only INPUT and OUTPUT are supported.";
+                }
+                if (hasExclusiveAction) {
+                    throw "invalid combination of flags.";
+                }
+                hasExclusiveAction = true;
+                bypass = true;
+                rulesets[Chain[parseArr[0]]].defPolicy = Action[parseArr[1]];
+                break;
+            case 'S':
+            case 'list-rules':
+                if (!Object.keys(Chain).includes(arg.value)) {
+                    throw "invalid chain. only INPUT and OUTPUT are supported.";
+                }
+                if (hasExclusiveAction) {
+                    throw "invalid combination of flags.";
+                }
+                hasExclusiveAction = true;
+                output = listRules(Chain[arg.value]);
+                bypass = true;
+                break;
+            case 'D':
+            case 'delete':
+                if (!Object.keys(Chain).includes(arg.value)) {
+                    throw "invalid chain. only INPUT and OUTPUT are supported.";
+                }
+                if (hasExclusiveAction) {
+                    throw "invalid combination of flags.";
+                }
+                hasExclusiveAction = true;
+                chainToDeleteFrom = Chain[arg.value];
+                tryDelete = true;
+                bypass = true;
                 break;
             case 'i':
             case 'in-interface':
                 if (!Object.keys(Interface).includes(arg.value)) {
-                    throw new Error("invalid interface");
+                    throw "invalid interface";
                 }
                 rule.in_inf = Interface[arg.value];
                 break;
             case 'o':
             case 'out-interface':
                 if (!Object.keys(Interface).includes(arg.value)) {
-                    throw new Error("invalid interface");
+                    throw "invalid interface";
                 }
                 rule.out_inf = Interface[arg.value];
                 break;
             case 'p':
             case 'protocol':
                 if (!Object.keys(Protocol).includes(arg.value)) {
-                    throw new Error("invalid protocol");
+                    throw "invalid protocol";
                 }
                 rule.protocol = Protocol[arg.value];
                 if (arg.value == "icmp") {
@@ -101,52 +156,20 @@ export function processIPTables(command, commandStr) {
             case 'j':
             case 'jump':
                 if (!Object.keys(Action).includes(arg.value)) {
-                    throw new Error("invalid target");
+                    throw "invalid target";
                 }
                 rule.action = Action[arg.value];
                 hasTarget = true;
                 break;
-            case 'P':
-            case 'policy':
-                const parseArr = arg.value.split(',');
-                if (parseArr.length != 2 || !Object.keys(Action).includes(parseArr[1])) {
-                    throw new Error("invalid default policy.");
-                }
-                if (!Object.keys(Chain).includes(parseArr[0])) {
-                    throw new Error("invalid chain. only INPUT and OUTPUT are supported.");
-                }
-                rulesets[Chain[parseArr[0]]].defPolicy = Action[parseArr[1]];
-                bypass = true;
-                break;
-            case 'S':
-            case 'list-rules':
-                if (!Object.keys(Chain).includes(arg.value)) {
-                    throw new Error("invalid chain. only INPUT and OUTPUT are supported.");
-                }
-                output = listRules(Chain[arg.value]);
-                bypass = true;
-                break;
-            case 'D':
-            case 'delete':
-                if (!Object.keys(Chain).includes(arg.value)) {
-                    throw new Error("invalid chain. only INPUT and OUTPUT are supported.");
-                }
-                if (hasAppend) {
-                    throw new Error("invalid combination of flags.");
-                }
-                chainToDeleteFrom = Chain[arg.value];
-                tryDelete = true;
-                bypass = true;
-                break;
             default:
-                throw new Error("unknown flag: " + arg.flag);
+                throw "unknown flag: " + arg.flag;
         }
     });
     if (!(hasAppend || bypass)) {
-        throw new Error("no command specified");
+        throw "no command specified";
     }
     if (!(hasTarget || bypass)) {
-        throw new Error("no target action specified");
+        throw "no target action specified";
     }
     if (tryDelete) {
         tryDeleteRule(chainToDeleteFrom, rule);

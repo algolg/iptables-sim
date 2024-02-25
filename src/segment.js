@@ -55,15 +55,17 @@ export class Segment {
 function doesIpMatch(ip, subnet) {
     return getNetworkAddress(ip, subnet.mask).every((ele, i) => ele === subnet.ip[i]);
 }
-export function trySendSegment(segment) {
-    for (var rule of rulesets[Chain["INPUT"]].rules) {
-        if (doesIpMatch(segment.source.network.ip, rule.source.network) && doesIpMatch(segment.dest.network.ip, rule.dest.network)) {
-            if (rule.protocol == Protocol["all"] || segment.protocol == rule.protocol) {
-                if (segment.protocol == Protocol["icmp"]) {
-                    return rule.action == Action["ACCEPT"];
-                }
-                if ((rule.source.ports.length == 0 || rule.source.ports.includes(segment.source.ports[0])) && (rule.dest.ports.length == 0 || rule.dest.ports.includes(segment.dest.ports[0]))) {
-                    return rule.action == Action["ACCEPT"];
+export function trySendSegment(segment, chain, in_inf = null, out_inf = null) {
+    for (var rule of rulesets[chain].rules) {
+        if ((rule.in_inf == null || rule.in_inf == in_inf) && (rule.out_inf == null || rule.out_inf == out_inf)) {
+            if (doesIpMatch(segment.source.network.ip, rule.source.network) && doesIpMatch(segment.dest.network.ip, rule.dest.network)) {
+                if (rule.protocol == Protocol["all"] || segment.protocol == rule.protocol) {
+                    if (segment.protocol == Protocol["icmp"]) {
+                        return rule.action == Action["ACCEPT"];
+                    }
+                    if ((rule.source.ports.length == 0 || rule.source.ports.includes(segment.source.ports[0])) && (rule.dest.ports.length == 0 || rule.dest.ports.includes(segment.dest.ports[0]))) {
+                        return rule.action == Action["ACCEPT"];
+                    }
                 }
             }
         }

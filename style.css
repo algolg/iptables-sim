@@ -5,6 +5,7 @@
     --slate: #9fa4be;
     --slate-dark: #6678a2;
     --blue-light: #baceff;
+    --error-red: #e61d1d;
 }
 
 bar {
@@ -114,6 +115,8 @@ html, body {
     box-shadow: 10px 10px 20px #33457233;
 }
 .form[type="submit"] {
+    padding-left: 0.6vw;
+    padding-right: 0.8vw;
     background-color: #495e90;
 }
 .form[type="submit"]:hover {
@@ -133,6 +136,9 @@ html, body {
     margin-left: 0.75vw;
 }
 
+.formInput {
+    max-width: 95%;
+}
 .formInput:read-only {
     color: var(--white-dark);
 }
@@ -153,18 +159,18 @@ html, body {
 .lineError::before {
     margin: 0;
     content: "error: ";
-    color: #ba1b1b;
+    color: var(--error-red);
 }
 
 .lineError, .ipTables {
     margin: 0;
-    color: #ba1b1b;
+    color: var(--error-red);
 }
 
 .ipTables::before {
     margin: 0;
     content: "iptables: ";
-    color: #ba1b1b;
+    color: var(--error-red);
 }
 
 .cliInput {
@@ -179,6 +185,10 @@ html, body {
 .cliInput:focus, .cliInput:focus-visible {
     outline: none;
     border: none;
+}
+
+.allowTextWrap {
+    white-space: normal;
 }
 
 .invisible {

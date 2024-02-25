@@ -75,24 +75,24 @@ export function tryReadIP(ipString) {
     }
     else if (ipStringArr.length == 1) { /* acceptable */ }
     else {
-        throw new Error("invalid network");
+        throw "invalid network";
     }
     // try to read ip address
     ipStringArr = ipStringArr[0].split(".");
     if (ipStringArr.length != 4) {
-        throw new Error("invalid ip address");
+        throw "invalid ip address";
     }
     let numberIP = [];
     ipStringArr.forEach((octet) => {
         if (!tryReadIntInRange(octet, 0, 255)) {
-            throw new Error("invalid ip address");
+            throw "invalid ip address";
         }
         else {
             numberIP.push(parseInt(octet));
         }
     });
     if (numberIP.length != 4) {
-        throw new Error("invalid ip address");
+        throw "invalid ip address";
     }
     return new Network(getNetworkAddress(numberIP, numberMask), numberMask);
 }
@@ -104,14 +104,14 @@ export function tryReadPort(portString) {
     }
     else if (port.length == 2 && tryReadIntInRange(port[0], 0, 65535) && tryReadIntInRange(port[1], 0, 65535)) {
         if (parseInt(port[0]) > parseInt(port[1])) {
-            throw new Error("invalid port(s)");
+            throw "invalid port(s)";
         }
         for (let i = parseInt(port[0]); i <= parseInt(port[1]); i++) {
             ports.push(i);
         }
     }
     else {
-        throw new Error("invalid port(s)");
+        throw "invalid port(s)";
     }
     return ports;
 }
@@ -135,7 +135,7 @@ export function tryDeleteRule(chain, ruleToDelete) {
             return;
         }
     }
-    throw new Error("matching rule not found");
+    throw "matching rule not found";
 }
 export function listRules(chain) {
     let output = [];
