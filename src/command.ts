@@ -1,4 +1,4 @@
-import { Rule, addToRulesets, tryReadIP, Action, Interface, tryReadPort, tryReadPorts, Chain, rulesets, tryDeleteRule } from "./rule.js";
+import { Rule, addToRulesets, tryReadIP, Action, Interface, tryReadPort, tryReadPorts, Chain, rulesets, tryDeleteRule, listRules } from "./rule.js";
 import { Protocol, State } from "./segment.js";
 
 export class Arg {
@@ -37,13 +37,17 @@ export function splitByFlags(command: string): Command {
     return new Command(commandName, args);
 }
 
-export function processIPTables(command: Command) {
+export function processIPTables(command: Command, commandStr: string) : string[] {
     let hasAppend = false;
     let hasTarget = false;
+
     let tryDelete = false;
     let chainToDeleteFrom: Chain;
     let bypass = false;
-    let rule: Rule = new Rule();
+
+    let output = [];
+    let rule: Rule = new Rule(commandStr);
+
     command.args.forEach((arg) => {
         switch (arg.flag) {
             case 'A':
@@ -131,6 +135,7 @@ export function processIPTables(command: Command) {
                 if (!Object.keys(Chain).includes(arg.value)) {
                     throw new Error("invalid chain. only INPUT and OUTPUT are supported.");
                 }
+                output = listRules(Chain[arg.value]);
                 bypass = true;
                 break;
             case 'D':
@@ -158,4 +163,5 @@ export function processIPTables(command: Command) {
     if (tryDelete) {
         tryDeleteRule(chainToDeleteFrom, rule);
     }
+    return output;
 }

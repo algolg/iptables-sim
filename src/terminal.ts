@@ -7,7 +7,7 @@ function focusInput(ele) {
     ele.lastElementChild.firstElementChild.focus();
 } (<any>window).focusInput = focusInput;
 
-function push(ele, text) {
+function pushLine(ele, text) {
     let histEle = ele.parentElement.previousElementSibling;
     let newLine = document.createElement("p");
     newLine.classList.add("line");
@@ -50,9 +50,8 @@ function clear(ele) {
 }
 
 function listHistory(ele) {
-    let histEle = ele.parentElement.previousElementSibling;
     for (var command of hist) {
-        push(ele, command);
+        pushLine(ele, command);
     }
 }
 
@@ -68,9 +67,11 @@ function processCommand(ele, command) {
     else if (command.startsWith("iptables")) {
         try {
             let iptablesCommand = splitByFlags(command.substring("iptables".length));
-            let output = processIPTables(iptablesCommand);
-            if (output != undefined) {
-                push(ele, output);
+            let output = processIPTables(iptablesCommand, command);
+            if (output.length > 0) {
+                for (var line of output) {
+                    pushLine(ele, line);
+                }
             }
         } catch (error) {
             pushError(ele, error, "ipTables")
@@ -78,7 +79,8 @@ function processCommand(ele, command) {
         return;
     }
     else if (command === "ifconfig") {
-        push(ele, "eth0: inet 192.168.0.10\u00A0\u00A0netmask 255.255.255.0\u00A0\u00A0broadcast 192.168.0.255")
+        // the unicode characters below are spaces
+        pushLine(ele, "eth0: inet 192.168.0.10\u00A0\u00A0netmask 255.255.255.0\u00A0\u00A0broadcast 192.168.0.255")
     }
     else if (command === "clear") {
         clear(ele);

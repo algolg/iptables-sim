@@ -18,10 +18,12 @@ export var Action;
 })(Action || (Action = {}));
 ;
 export class Rule {
-    constructor() {
+    constructor(command) {
         this.protocol = Protocol["all"];
         this.source = new AddressPort();
         this.dest = new AddressPort();
+        this.command = "";
+        this.command = command;
     }
 }
 export class Ruleset {
@@ -124,13 +126,24 @@ export function tryReadPorts(portString) {
     return ports;
 }
 export function tryDeleteRule(chain, ruleToDelete) {
-    let ruleToDeleteJSON = JSON.stringify(ruleToDelete);
+    let replacer = Object.keys(Rule);
+    replacer.pop();
+    let ruleToDeleteJSON = JSON.stringify(ruleToDelete, replacer);
     for (let i = 0; i < rulesets[chain].rules.length; i++) {
-        if (ruleToDeleteJSON === JSON.stringify(rulesets[chain].rules[i])) {
-            rulesets[chain].rules.splice(i, 1);
+        if (ruleToDeleteJSON === JSON.stringify(rulesets[chain].rules[i], replacer)) {
+            rulesets[chain].rules.splice(i);
             return;
         }
     }
     throw new Error("matching rule not found");
+}
+export function listRules(chain) {
+    let output = [];
+    let ruleset = rulesets[chain];
+    output.push("iptables -P " + Chain[chain] + " " + Action[ruleset.defPolicy]);
+    ruleset.rules.forEach(rule => {
+        output.push(rule.command);
+    });
+    return output;
 }
 //# sourceMappingURL=rule.js.map
