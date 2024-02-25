@@ -1,4 +1,4 @@
-import { Rule, addToRulesets, tryReadIP, Action, Interface, tryReadPort, tryReadPorts, Chain } from "./rule.js";
+import { Rule, addToRulesets, tryReadIP, Action, Interface, tryReadPort, tryReadPorts, Chain, rulesets, tryDeleteRule } from "./rule.js";
 import { Protocol } from "./segment.js";
 export class Arg {
     constructor(flag, value) {
@@ -24,20 +24,26 @@ export function splitByFlags(command) {
         if (tempArgs.length < 2) {
             throw new Error("options require arguments");
         }
-        args.push(new Arg(tempArgs[0], tempArgs.slice(1).join('')));
+        args.push(new Arg(tempArgs[0], tempArgs.slice(1).join(',')));
     }
     return new Command(commandName, args);
 }
 export function processIPTables(command) {
     let hasAppend = false;
     let hasTarget = false;
+    let tryDelete = false;
+    let chainToDeleteFrom;
+    let bypass = false;
     let rule = new Rule();
     command.args.forEach((arg) => {
         switch (arg.flag) {
             case 'A':
             case 'append':
                 if (!Object.keys(Chain).includes(arg.value)) {
-                    throw new Error("invalid chain. only INPUT and OUTPUT accepted.");
+                    throw new Error("invalid chain. only INPUT and OUTPUT are supported.");
+                }
+                if (tryDelete) {
+                    throw new Error("invalid combination of flags.");
                 }
                 addToRulesets(Chain[arg.value], rule);
                 hasAppend = true;
@@ -62,6 +68,10 @@ export function processIPTables(command) {
                     throw new Error("invalid protocol");
                 }
                 rule.protocol = Protocol[arg.value];
+                if (arg.value == "icmp") {
+                    rule.source.ports = [];
+                    rule.dest.ports = [];
+                }
                 break;
             case 's':
             case 'source':
@@ -69,7 +79,7 @@ export function processIPTables(command) {
                 break;
             case 'd':
             case 'destination':
-                rule.source.network = tryReadIP(arg.value);
+                rule.dest.network = tryReadIP(arg.value);
                 break;
             case 'sport':
             case 'source-port':
@@ -92,18 +102,52 @@ export function processIPTables(command) {
                 if (!Object.keys(Action).includes(arg.value)) {
                     throw new Error("invalid target");
                 }
-                rule.protocol = Action[arg.value];
+                rule.action = Action[arg.value];
                 hasTarget = true;
+                break;
+            case 'P':
+            case 'policy':
+                const parseArr = arg.value.split(',');
+                if (parseArr.length != 2 || !Object.keys(Action).includes(parseArr[1])) {
+                    throw new Error("invalid default policy.");
+                }
+                if (!Object.keys(Chain).includes(parseArr[0])) {
+                    throw new Error("invalid chain. only INPUT and OUTPUT are supported.");
+                }
+                rulesets[Chain[parseArr[0]]].defPolicy = Action[parseArr[1]];
+                bypass = true;
+                break;
+            case 'S':
+            case 'list-rules':
+                if (!Object.keys(Chain).includes(arg.value)) {
+                    throw new Error("invalid chain. only INPUT and OUTPUT are supported.");
+                }
+                bypass = true;
+                break;
+            case 'D':
+            case 'delete':
+                if (!Object.keys(Chain).includes(arg.value)) {
+                    throw new Error("invalid chain. only INPUT and OUTPUT are supported.");
+                }
+                if (hasAppend) {
+                    throw new Error("invalid combination of flags.");
+                }
+                chainToDeleteFrom = Chain[arg.value];
+                tryDelete = true;
+                bypass = true;
                 break;
             default:
                 throw new Error("unknown flag: " + arg.flag);
         }
     });
-    if (!hasAppend) {
+    if (!(hasAppend || bypass)) {
         throw new Error("no command specified");
     }
-    if (!hasTarget) {
+    if (!(hasTarget || bypass)) {
         throw new Error("no target action specified");
+    }
+    if (tryDelete) {
+        tryDeleteRule(chainToDeleteFrom, rule);
     }
 }
 //# sourceMappingURL=command.js.map

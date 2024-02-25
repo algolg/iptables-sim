@@ -1,6 +1,5 @@
 import { Network, AddressPort, Protocol, State } from "./segment.js";
 
-export var rulesets: Ruleset[] = [];
 
 export enum Chain { INPUT = 0, OUTPUT = 1 };
 export enum Interface { lo = 0, eth0 = 1 };
@@ -9,7 +8,7 @@ export enum Action { DROP = 0, ACCEPT = 1 };
 export class Rule {
     in_inf: Interface;
     out_inf: Interface;
-    protocol: Protocol = 3;
+    protocol: Protocol = Protocol["all"];
     source: AddressPort = new AddressPort();
     dest: AddressPort = new AddressPort();
     // conntrack: boolean = false;
@@ -19,6 +18,7 @@ export class Rule {
 
 export class Ruleset {
     chain: Chain;
+    defPolicy: Action = Action["ACCEPT"];
     rules: Rule[] = [];
 
     constructor(chain: Chain, rules: Rule = null) {
@@ -28,6 +28,9 @@ export class Ruleset {
         }
     }
 }
+
+export var rulesets: Ruleset[] = [new Ruleset(Chain["INPUT"]), new Ruleset(Chain["OUTPUT"])];
+
 
 export function addToRulesets(rulesetChain: Chain, newRule: Rule) {
     rulesets.forEach((ruleset) => {
@@ -51,7 +54,7 @@ function tryReadIntInRange(str: string, lowerBound: number, upperBound: number) 
     return true;
 }
 
-function getNetworkAddress(ipAddress: number[], mask: number) : number[] {
+export function getNetworkAddress(ipAddress: number[], mask: number) : number[] {
     let netAddress: number[] = [];
     let AND: number;
     for (let i = 0; i < 4; i++, mask -= 8) {
@@ -121,4 +124,15 @@ export function tryReadPorts(portString: string) : number[] {
         });
     });
     return ports;
+}
+
+export function tryDeleteRule(chain: Chain, ruleToDelete: Rule) {
+    let ruleToDeleteJSON = JSON.stringify(ruleToDelete);
+    for (let i = 0; i < rulesets[chain].rules.length; i++) {
+        if (ruleToDeleteJSON === JSON.stringify(rulesets[chain].rules[i])) {
+            rulesets[chain].rules.splice(i, 1);
+            return;
+        }
+    }
+    throw new Error("matching rule not found");
 }

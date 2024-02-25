@@ -9,20 +9,32 @@
  * can be assumed to be automatically established
  */
 
+import { Action, Chain, getNetworkAddress, rulesets } from "./rule.js";
 
 export class Network {
     ip: number[];
     mask: number;
 
-    constructor(ip: number[] = [0,0,0,0], mask: number = 32) {
+    constructor(ip: number[] = [0,0,0,0], mask: number = 0) {
         this.ip = ip;
         this.mask = mask;
+    }
+    public ipToString() : string {
+        return this.ip[0] + '.' + this.ip[1] + '.' + this.ip[2] + '.' + this.ip[3];
+    }
+    public toString() : string {
+        return this.ipToString() + '/' + this.mask
     }
 }
 
 export class AddressPort {
     network: Network = new Network();
     ports: number[] = [];
+
+    constructor(network: Network = new Network(), ports: number[] = []) {
+        this.network = network;
+        this.ports = ports;
+    }
 }
 
 export enum Protocol { tcp = 0, udp = 1, icmp = 2, all = 3 };
@@ -32,4 +44,30 @@ export class Segment {
     protocol: Protocol;
     source: AddressPort
     dest: AddressPort;
+
+    constructor(protocol: Protocol, source: AddressPort, dest: AddressPort) {
+        this.protocol = protocol;
+        this.source = source;
+        this.dest = dest;
+    }
+}
+
+function doesIpMatch(ip: number[], subnet: Network) : boolean {
+    return getNetworkAddress(ip, subnet.mask).every((ele, i) => ele === subnet.ip[i]);
+}
+
+export function trySendSegment(segment: Segment) : boolean {
+    for (var rule of rulesets[Chain["INPUT"]].rules) {
+        if (doesIpMatch(segment.source.network.ip, rule.source.network) && doesIpMatch(segment.dest.network.ip, rule.dest.network)) {
+            if (rule.protocol == Protocol["all"] || segment.protocol == rule.protocol) {
+                if (segment.protocol == Protocol["icmp"]) {
+                    return rule.action == Action["ACCEPT"];
+                }
+                if ((rule.source.ports.length == 0 || rule.source.ports.includes(segment.source.ports[0])) && (rule.dest.ports.length == 0 || rule.dest.ports.includes(segment.dest.ports[0]))) {
+                    return rule.action == Action["ACCEPT"];
+                }
+            }
+        }
+    }
+    return rulesets[Chain["INPUT"]].defPolicy == Action["ACCEPT"];
 }

@@ -1,5 +1,4 @@
-import { Network, AddressPort } from "./segment.js";
-export var rulesets = [];
+import { Network, AddressPort, Protocol } from "./segment.js";
 export var Chain;
 (function (Chain) {
     Chain[Chain["INPUT"] = 0] = "INPUT";
@@ -20,13 +19,14 @@ export var Action;
 ;
 export class Rule {
     constructor() {
-        this.protocol = 3;
+        this.protocol = Protocol["all"];
         this.source = new AddressPort();
         this.dest = new AddressPort();
     }
 }
 export class Ruleset {
     constructor(chain, rules = null) {
+        this.defPolicy = Action["ACCEPT"];
         this.rules = [];
         this.chain = chain;
         if (rules != null) {
@@ -34,6 +34,7 @@ export class Ruleset {
         }
     }
 }
+export var rulesets = [new Ruleset(Chain["INPUT"]), new Ruleset(Chain["OUTPUT"])];
 export function addToRulesets(rulesetChain, newRule) {
     rulesets.forEach((ruleset) => {
         if (ruleset.chain === rulesetChain) {
@@ -42,7 +43,6 @@ export function addToRulesets(rulesetChain, newRule) {
         }
     });
     rulesets.push(new Ruleset(rulesetChain, newRule));
-    console.log(rulesets);
 }
 function tryReadIntInRange(str, lowerBound, upperBound) {
     let hasChars = str.split("").some(character => isNaN(parseInt(character)));
@@ -55,7 +55,7 @@ function tryReadIntInRange(str, lowerBound, upperBound) {
     }
     return true;
 }
-function getNetworkAddress(ipAddress, mask) {
+export function getNetworkAddress(ipAddress, mask) {
     let netAddress = [];
     let AND;
     for (let i = 0; i < 4; i++, mask -= 8) {
@@ -122,5 +122,15 @@ export function tryReadPorts(portString) {
         });
     });
     return ports;
+}
+export function tryDeleteRule(chain, ruleToDelete) {
+    let ruleToDeleteJSON = JSON.stringify(ruleToDelete);
+    for (let i = 0; i < rulesets[chain].rules.length; i++) {
+        if (ruleToDeleteJSON === JSON.stringify(rulesets[chain].rules[i])) {
+            rulesets[chain].rules.splice(i, 1);
+            return;
+        }
+    }
+    throw new Error("matching rule not found");
 }
 //# sourceMappingURL=rule.js.map

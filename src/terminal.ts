@@ -7,6 +7,15 @@ function focusInput(ele) {
     ele.lastElementChild.firstElementChild.focus();
 } (<any>window).focusInput = focusInput;
 
+function push(ele, text) {
+    let histEle = ele.parentElement.previousElementSibling;
+    let newLine = document.createElement("p");
+    newLine.classList.add("line");
+    newLine.innerText = text;
+
+    histEle.appendChild(newLine);
+}
+
 function pushError(ele, text, className = "lineError") {
     let histEle = ele.parentElement.previousElementSibling;
     let newLine = document.createElement("p");
@@ -19,7 +28,7 @@ function pushError(ele, text, className = "lineError") {
 function pushToHistory(ele, text) {
     let histEle = ele.parentElement.previousElementSibling;
     let newLine = document.createElement("p");
-    newLine.classList.add("line");
+    newLine.classList.add("lineCommand");
     newLine.innerText = text;
 
     histEle.appendChild(newLine);
@@ -35,6 +44,18 @@ function addCommandToHistory(ele) {
     ele.value = "";
 }
 
+function clear(ele) {
+    let histEle = ele.parentElement.previousElementSibling;
+    histEle.replaceChildren();
+}
+
+function listHistory(ele) {
+    let histEle = ele.parentElement.previousElementSibling;
+    for (var command of hist) {
+        push(ele, command);
+    }
+}
+
 function processCommand(ele, command) {
     if (command == "") {
         // empty command is ok
@@ -46,12 +67,24 @@ function processCommand(ele, command) {
     }
     else if (command.startsWith("iptables")) {
         try {
-            let iptablesCommand = splitByFlags(command.substring("iptables".length))
-            processIPTables(iptablesCommand);
+            let iptablesCommand = splitByFlags(command.substring("iptables".length));
+            let output = processIPTables(iptablesCommand);
+            if (output != undefined) {
+                push(ele, output);
+            }
         } catch (error) {
             pushError(ele, error, "ipTables")
         }
         return;
+    }
+    else if (command === "ifconfig") {
+        push(ele, "eth0: inet 192.168.0.10\u00A0\u00A0netmask 255.255.255.0\u00A0\u00A0broadcast 192.168.0.255")
+    }
+    else if (command === "clear") {
+        clear(ele);
+    }
+    else if (command === "history") {
+        listHistory(ele);
     }
     else {
         pushError(ele, "command not found...");

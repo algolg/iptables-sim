@@ -1,27 +1,87 @@
-bar {
-    background-color: #051926;
+:root {
+    --white: #fcfdff;
+    --white-blue: #e1eded;
+    --white-dark: #c4c8d2;
+    --slate: #9fa4be;
+    --slate-dark: #6678a2;
+    --blue-light: #baceff;
 }
 
-body {
-    margin: 2vw;
+bar {
+    padding: 0.2vw 0.5vw 0.25vw 1vw;
+    display: block;
+    background-color: #1d2d46;
+}
+bar > div {
+    display: flex;
+    width: 100%;
+}
+bar > div > h1 {
+    font-size: medium;
+    margin: 0
+}
+bar > div > p {
+    font-size: medium;
+    text-align: right;
+    margin: 0 0 0 auto;
+}
+
+html, body {
+    margin: 0;
     font-family: "Source Sans 3", sans-serif;
     background-color: #2d3951;
-    color: #e1eded;
+    color: var(--white-blue);
+}
+.mainBody {
+    margin: 1vw 1.5vw 1.5vw 1.5vw;
 }
 
-.grid-container {
+.gridContainer {
     display: grid;
-    grid-template-columns: 50% 50%;
+    grid-template-columns: 35% 65%;
 }
 
 .window {
     /* width: 36vw; */
     margin: 0.5vw;
-    height: 36vw;
+    height: 85vh;
     border-radius: 0.9vw;
     padding: 1vw;
     overflow: auto;
-    box-shadow: 2.5vw 2.5vw 50px #9ea5ff07;
+    box-shadow: 2.5vw 2.5vw 50px #9ea5ff13;
+}
+
+.intruderInterface {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 1.5em;
+    font-weight: 600;
+    background-color: var(--slate);
+    color: var(--white);
+}
+
+#intruderHistory {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 400;
+    font-size: 0.75em;
+    height: 100%;
+    color: var(--slate-dark);
+    padding: 0.5vw;
+    border-radius: 0.45vw;
+    background-color: #051926;
+    white-space: nowrap;
+    overflow: scroll;
+}
+
+.segmentSuccess, .segmentFailed {
+    font-weight: 800;
+}
+.segmentSuccess {
+    color: #11bd81;
+}
+.segmentFailed {
+    color: #e24713;
 }
 
 .terminal {
@@ -37,13 +97,6 @@ body {
     cursor: text;
 }
 
-.interface {
-    font-size: 1.5em;
-    font-weight: 600;
-    background-color: #9fa4be;
-    color: #fcfdff;
-}
-
 .form {
     font-size: 0.9em;
     display: block;
@@ -51,12 +104,12 @@ body {
     outline: 0.25vw transparent;
     border: transparent;
     padding: 0.4vw;
-    margin: 0.4vw;
-    background-color: #6678a2;
-    color: #fcfdff;
+    margin: 0.4vw 0.4vw 1.6vw 0.4vw;
+    background-color: var(--slate-dark);
+    color: var(--white);
 }
 .form:focus {
-    outline: 0.25vw solid #baceff;
+    outline: 0.25vw solid var(--blue-light);
     border: #8177d3ee;
     box-shadow: 10px 10px 20px #33457233;
 }
@@ -66,14 +119,34 @@ body {
 .form[type="submit"]:hover {
     cursor: pointer;
 }
+.form[type="number"] {
+    width: 30%;
+}
 
-.line::before {
+.formAdjacent {
+    display: flex;
+}
+.formAdjacentLeft {
+    margin-right: 0.75vw;
+}
+.formAdjacentRight {
+    margin-left: 0.75vw;
+}
+
+.formInput:read-only {
+    color: var(--white-dark);
+}
+.formInput:read-only:hover {
+    cursor: not-allowed;
+}
+
+.lineCommand::before {
     width: 10%;
     content: '[user@pc]# ';
     color: #a2a0cd;
 }
 
-.line {
+.line, .lineCommand {
     margin: 0;
 }
 
@@ -106,4 +179,8 @@ body {
 .cliInput:focus, .cliInput:focus-visible {
     outline: none;
     border: none;
+}
+
+.invisible {
+    display: none;
 }
