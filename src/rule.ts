@@ -1,4 +1,4 @@
-import { processIPTables, splitByFlags } from "./command.js";
+// import { processIPTables, splitByFlags } from "./command.js";
 import { AddressPort, Network, Protocol, State } from "./segment.js";
 
 export let commandStrs: string[] = [];
@@ -50,7 +50,7 @@ export function addToRulesets(rulesetChain: Chain, newRule: Rule) {
     // updateCommandStrs();
 }
 
-function tryReadIntInRange(str: string, lowerBound: number, upperBound: number) : boolean {
+export function tryReadIntInRange(str: string, lowerBound: number, upperBound: number) : boolean {
     let hasChars = str.split("").some(character => isNaN(parseInt(character)));
     if (hasChars) {
         return false;

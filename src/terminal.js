@@ -3,7 +3,7 @@ import { commandStrs, flush } from "./rule.js";
 let hist = [];
 let indexAdjust = 0;
 function focusInput(ele) {
-    ele.lastElementChild.firstElementChild.focus();
+    ele.lastElementChild.firstElementChild.focus({ preventScroll: true });
 }
 window.focusInput = focusInput;
 function pushLine(ele, text, className = "line") {
@@ -13,8 +13,8 @@ function pushLine(ele, text, className = "line") {
     newLine.innerText = text;
     histEle.appendChild(newLine);
 }
-function pushError(ele, text, className = "lineError") {
-    pushLine(ele, text, className);
+function pushError(ele, text, prefix = "error") {
+    pushLine(ele, prefix + ": " + text, "lineError");
 }
 function pushToHistory(ele, text) {
     pushLine(ele, text, "lineCommand");
@@ -55,7 +55,7 @@ function processCommand(ele, command) {
             }
         }
         catch (error) {
-            pushError(ele, error);
+            pushError(ele, error, "cat");
         }
     }
     else if (command.startsWith("sudo")) {
@@ -95,7 +95,7 @@ function processCommand(ele, command) {
             }
         }
         catch (error) {
-            pushError(ele, error);
+            pushError(ele, error, "curl");
         }
     }
     else if (command === "clear") {

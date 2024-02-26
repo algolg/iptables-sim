@@ -157,20 +157,8 @@ html, body {
     margin: 0;
 }
 
-.lineError::before {
+.lineError {
     margin: 0;
-    content: "error: ";
-    color: var(--error-red);
-}
-
-.lineError, .ipTables {
-    margin: 0;
-    color: var(--error-red);
-}
-
-.ipTables::before {
-    margin: 0;
-    content: "iptables: ";
     color: var(--error-red);
 }
 

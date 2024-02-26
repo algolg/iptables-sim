@@ -17,8 +17,8 @@ function pushLine(ele, text: string, className = "line") {
     histEle.appendChild(newLine);
 }
 
-function pushError(ele, text: string, className = "lineError") {
-    pushLine(ele, text, className);
+function pushError(ele, text: string, prefix = "error") {
+    pushLine(ele, prefix + ": " +  text, "lineError");
 }
 
 function pushToHistory(ele, text: string) {
@@ -64,7 +64,7 @@ function processCommand(ele, command) {
                 }
             }
         } catch (error) {
-            pushError(ele, error);
+            pushError(ele, error, "cat");
         }
     }
     else if (command.startsWith("sudo")) {
@@ -102,7 +102,7 @@ function processCommand(ele, command) {
                 }
             }
         } catch (error) {
-            pushError(ele, error);
+            pushError(ele, error, "curl");
         }
     }
     else if (command === "clear") {

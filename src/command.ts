@@ -1,6 +1,6 @@
 import { Rule, addToRulesets, tryReadIP, Action, Interface, tryReadPort, tryReadPorts, Chain, rulesets, tryDeleteRule, listRules, flushChain } from "./rule.js";
 import { AddressPort, Network, Protocol, Segment, State, trySendSegment } from "./segment.js";
-import { getSite, knownSites } from "./servers.js";
+import { getSite, isIP, knownDomains, resolveDomain } from "./servers.js";
 
 export class Arg {
     flag: string;
@@ -54,50 +54,53 @@ export function processCat(command: string) : string[] {
 export function processCurl(command: string) : string[] {
     let arg = command.split('').slice("curl ".length).join('');
     let urlParse = arg.match(/[A-Za-z]+\.[A-Za-z]+/);
-    const url = (urlParse[0] == null ? arg : urlParse[0]);
+    const url = (urlParse == null ? arg : urlParse[0]);
 
     const pc = new Network([192,168,0,10]);
     const dnsServer = new Network([1,1,1,1]);
     const webServer = new Network([1,1,1,10]);
+    
+    let ip: Network = null;
+    let hasIP = false;
 
-    if (knownSites.includes(url)) {
-        let pcDNS = new AddressPort(pc, [53]);
-        let serverDNS = new AddressPort(dnsServer, [53]);
-        let dnsResolveOut = new Segment(Protocol["udp"], pcDNS, serverDNS);
-        let dnsResolveIn = new Segment(Protocol["udp"], serverDNS, pcDNS);
-        if (trySendSegment(dnsResolveOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(dnsResolveIn, Chain["INPUT"], Interface["eth0"])) {
-            // dns resolved
-            let pcHTTP = new AddressPort(pc, [80]);
-            let serverHTTP = new AddressPort(webServer, [80]);
-            let webOut = new Segment(Protocol["tcp"], pcHTTP, serverHTTP);
-            let webIn = new Segment(Protocol["tcp"], serverHTTP, pcHTTP);
-            if (trySendSegment(webOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(webIn, Chain["INPUT"], Interface["eth0"])) {
-                // web request worked
-                return getSite(url);
-            }
-            else {
-                throw "curl: (522) Connection timed out";
-            }
+    let pcDNS = new AddressPort(pc, [53]);
+    let serverDNS = new AddressPort(dnsServer, [53]);
+    let dnsResolveOut = new Segment(Protocol["udp"], pcDNS, serverDNS);
+    let dnsResolveIn = new Segment(Protocol["udp"], serverDNS, pcDNS);
+    if (isIP(url)) {
+        hasIP = true;
+        ip = tryReadIP(url);
+    }
+    if (ip != null || (trySendSegment(dnsResolveOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(dnsResolveIn, Chain["INPUT"], Interface["eth0"]))) {
+        if (ip == null) {
+            ip = resolveDomain(url);
+        }
+        // dns resolved
+        let pcHTTP = new AddressPort(pc, [80]);
+        let serverHTTP = new AddressPort(webServer, [80]);
+        let webOut = new Segment(Protocol["tcp"], pcHTTP, serverHTTP);
+        let webIn = new Segment(Protocol["tcp"], serverHTTP, pcHTTP);
+        if (trySendSegment(webOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(webIn, Chain["INPUT"], Interface["eth0"])) {
+            // web request worked
+            return getSite(ip);
         }
         else {
-            throw "curl: (6) Could not resolve host: " + url;
+            throw "connection timed out";
         }
     }
     else {
-        throw "curl: (6) Could not resolve host: " + url;
+        throw "could not resolve host: " + url;
     }
 }
 
 export function processIPTables(command: Command, commandStr: string) : string[] {
-    let hasAppend = false;
-    let hasTarget = false;
-    let tryDelete = false;
-    let tryFlush = false;
     let hasExclusiveAction = false;
+    let action: string = null;
 
+    let hasTarget = false;
+    let chainToAppendTo: Chain;
     let chainToDeleteFrom: Chain;
     let chainToFlushFrom: Chain;
-    let bypass = false;
 
     let output = [];
     let rule: Rule = new Rule(commandStr.substring("iptables".length));
@@ -109,12 +112,12 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                 if (!Object.keys(Chain).includes(arg.value)) {
                     throw "invalid chain. only INPUT and OUTPUT are supported.";
                 }
-                if (tryDelete || hasExclusiveAction) {
+                if (hasExclusiveAction) {
                     throw "invalid combination of flags.";
                 }
                 hasExclusiveAction = true;
-                hasAppend = true;
-                addToRulesets(Chain[arg.value], rule);
+                action = "append";
+                chainToAppendTo = Chain[arg.value];
                 break;
             case 'P':
             case 'policy':
@@ -129,7 +132,7 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                     throw "invalid combination of flags.";
                 }
                 hasExclusiveAction = true;
-                bypass = true;
+                action = "policy";
                 rulesets[Chain[parseArr[0]]].defPolicy = Action[parseArr[1]];
                 break;
             case 'S':
@@ -141,8 +144,8 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                     throw "invalid combination of flags.";
                 }
                 hasExclusiveAction = true;
+                action = "listrules"
                 output = listRules(Chain[arg.value]);
-                bypass = true;
                 break;
             case 'D':
             case 'delete':
@@ -153,9 +156,8 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                     throw "invalid combination of flags.";
                 }
                 hasExclusiveAction = true;
+                action = "delete";
                 chainToDeleteFrom = Chain[arg.value];
-                tryDelete = true;
-                bypass = true;
                 break;
             case 'F':
             case 'flush':
@@ -166,9 +168,8 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                     throw "invalid combination of flags.";
                 }
                 hasExclusiveAction = true;
+                action = "flush";
                 chainToFlushFrom = Chain[arg.value];
-                tryFlush = true;
-                bypass = true;
                 break;
             case 'i':
             case 'in-interface':
@@ -249,17 +250,24 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                 throw "unknown flag: " + arg.flag;
         }
     });
-    if (!(hasAppend || bypass)) {
-        throw "no command specified";
-    }
-    if (!(hasTarget || bypass)) {
-        throw "no target action specified";
-    }
-    if (tryDelete) {
-        tryDeleteRule(chainToDeleteFrom, rule);
-    }
-    else if (tryFlush) {
-        flushChain(chainToDeleteFrom);
+    switch (action) {
+        case "append":
+            if (!hasTarget) {
+                throw "no target action specified"
+            }
+            addToRulesets(chainToAppendTo, rule);
+            return output;
+        case "policy":
+        case "listrules":
+            return output;
+        case "delete":
+            tryDeleteRule(chainToDeleteFrom, rule);
+            return output;
+        case "flush":
+            flushChain(chainToFlushFrom);
+            return output;
+        case null:
+            throw "no command specified"
     }
     return output;
 }
