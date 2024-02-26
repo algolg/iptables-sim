@@ -52,12 +52,37 @@ export class Segment {
     }
 }
 
+let stateTable: Segment[] = [];
+
+function tryAddToStateTable(segment: Segment, chain: Chain, action: Action) {
+    if (action == Action["ACCEPT"] && chain == Chain["OUTPUT"]) {
+        stateTable.push(segment);
+    }
+}
+
+function compareNetwork(a: Network, b: Network) : boolean {
+    return (a.mask === b.mask) && (a.ip.every((ele, i) => ele === b.ip[i]));
+}
+
+function compareAddressPort(a: AddressPort, b: AddressPort) : boolean {
+    return compareNetwork(a.network,b.network) && (a.ports.every((ele, i) => ele === b.ports[i]));
+}
+
 function doesIpMatch(ip: number[], subnet: Network) : boolean {
     return getNetworkAddress(ip, subnet.mask).every((ele, i) => ele === subnet.ip[i]);
 }
 
 export function trySendSegment(segment: Segment, chain: Chain, in_inf: Interface = null, out_inf: Interface = null) : boolean {
     for (var rule of rulesets[chain].rules) {
+        if (rule.conntrack && rule.cstate.includes(State["ESTABLISHED"])) {
+            for (var [index,state] of stateTable.entries()) {
+                if (segment.protocol == state.protocol && compareAddressPort(segment.source, state.dest) && compareAddressPort(segment.dest, state.source)) {
+                    stateTable.splice(index,1);
+                    return rule.action == Action["ACCEPT"];
+                }
+            }
+            continue;
+        }
         if ((rule.in_inf == null || rule.in_inf == in_inf) && (rule.out_inf == null || rule.out_inf == out_inf)) {
             if (doesIpMatch(segment.source.network.ip, rule.source.network) && doesIpMatch(segment.dest.network.ip, rule.dest.network)) {
                 if (rule.protocol == Protocol["all"] || segment.protocol == rule.protocol) {
@@ -65,11 +90,13 @@ export function trySendSegment(segment: Segment, chain: Chain, in_inf: Interface
                         return rule.action == Action["ACCEPT"];
                     }
                     if ((rule.source.ports.length == 0 || rule.source.ports.includes(segment.source.ports[0])) && (rule.dest.ports.length == 0 || rule.dest.ports.includes(segment.dest.ports[0]))) {
+                        tryAddToStateTable(segment, chain, rule.action);
                         return rule.action == Action["ACCEPT"];
                     }
                 }
             }
         }
     }
+    tryAddToStateTable(segment, chain, rulesets[Chain["INPUT"]].defPolicy);
     return rulesets[Chain["INPUT"]].defPolicy == Action["ACCEPT"];
 }

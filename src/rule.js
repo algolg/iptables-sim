@@ -1,4 +1,5 @@
-import { Network, AddressPort, Protocol } from "./segment.js";
+import { AddressPort, Network, Protocol } from "./segment.js";
+export let commandStrs = [];
 export var Chain;
 (function (Chain) {
     Chain[Chain["INPUT"] = 0] = "INPUT";
@@ -22,6 +23,8 @@ export class Rule {
         this.protocol = Protocol["all"];
         this.source = new AddressPort();
         this.dest = new AddressPort();
+        this.conntrack = false;
+        this.cstate = [];
         this.command = "";
         this.command = command;
     }
@@ -45,6 +48,7 @@ export function addToRulesets(rulesetChain, newRule) {
         }
     });
     rulesets.push(new Ruleset(rulesetChain, newRule));
+    // updateCommandStrs();
 }
 function tryReadIntInRange(str, lowerBound, upperBound) {
     let hasChars = str.split("").some(character => isNaN(parseInt(character)));
@@ -125,13 +129,24 @@ export function tryReadPorts(portString) {
     });
     return ports;
 }
+export function flush() {
+    for (var ruleset of rulesets) {
+        ruleset.rules = [];
+    }
+    // updateCommandStrs();
+}
+export function flushChain(chain) {
+    rulesets[chain].rules = [];
+    // updateCommandStrs();
+}
 export function tryDeleteRule(chain, ruleToDelete) {
     let replacer = Object.keys(Rule);
     replacer.pop();
     let ruleToDeleteJSON = JSON.stringify(ruleToDelete, replacer);
     for (let i = 0; i < rulesets[chain].rules.length; i++) {
         if (ruleToDeleteJSON === JSON.stringify(rulesets[chain].rules[i], replacer)) {
-            rulesets[chain].rules.splice(i);
+            rulesets[chain].rules.splice(i, 1);
+            // updateCommandStrs();
             return;
         }
     }
@@ -140,10 +155,25 @@ export function tryDeleteRule(chain, ruleToDelete) {
 export function listRules(chain) {
     let output = [];
     let ruleset = rulesets[chain];
-    output.push("iptables -P " + Chain[chain] + " " + Action[ruleset.defPolicy]);
+    output.push("-P " + Chain[chain] + " " + Action[ruleset.defPolicy]);
     ruleset.rules.forEach(rule => {
         output.push(rule.command);
     });
     return output;
 }
+// export function setCommandStrs() {
+//     commandStrs = JSON.parse(localStorage.getItem("commandStrs")) as string[];
+//     for (var command of commandStrs) {
+//         processIPTables(splitByFlags(command), "iptables" + command);
+//     }
+// }
+// function updateCommandStrs() {
+//     commandStrs = [];
+//     for (var ruleset of rulesets) {
+//         for (var rule of ruleset.rules) {
+//             commandStrs.push(rule.command);
+//         }
+//     }
+//     localStorage.setItem("commandStrs", JSON.stringify(commandStrs));
+// }
 //# sourceMappingURL=rule.js.map

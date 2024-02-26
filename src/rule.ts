@@ -1,6 +1,7 @@
-import { Command } from "./command.js";
-import { Network, AddressPort, Protocol, State } from "./segment.js";
+import { processIPTables, splitByFlags } from "./command.js";
+import { AddressPort, Network, Protocol, State } from "./segment.js";
 
+export let commandStrs: string[] = [];
 
 export enum Chain { INPUT = 0, OUTPUT = 1 };
 export enum Interface { lo = 0, eth0 = 1 };
@@ -12,8 +13,8 @@ export class Rule {
     protocol: Protocol = Protocol["all"];
     source: AddressPort = new AddressPort();
     dest: AddressPort = new AddressPort();
-    // conntrack: boolean = false;
-    // cstate: State[] = [0];
+    conntrack: boolean = false;
+    cstate: State[] = [];
     action: Action;
     command: string = "";
 
@@ -46,6 +47,7 @@ export function addToRulesets(rulesetChain: Chain, newRule: Rule) {
         }
     });
     rulesets.push(new Ruleset(rulesetChain, newRule));
+    // updateCommandStrs();
 }
 
 function tryReadIntInRange(str: string, lowerBound: number, upperBound: number) : boolean {
@@ -132,13 +134,26 @@ export function tryReadPorts(portString: string) : number[] {
     return ports;
 }
 
+export function flush() {
+    for (var ruleset of rulesets) {
+        ruleset.rules = [];
+    }
+    // updateCommandStrs();
+}
+
+export function flushChain(chain: Chain) {
+    rulesets[chain].rules = [];
+    // updateCommandStrs();
+}
+
 export function tryDeleteRule(chain: Chain, ruleToDelete: Rule) {
     let replacer = Object.keys(Rule);
     replacer.pop();
     let ruleToDeleteJSON = JSON.stringify(ruleToDelete, replacer);
     for (let i = 0; i < rulesets[chain].rules.length; i++) {
         if (ruleToDeleteJSON === JSON.stringify(rulesets[chain].rules[i], replacer)) {
-            rulesets[chain].rules.splice(i);
+            rulesets[chain].rules.splice(i,1);
+            // updateCommandStrs();
             return;
         }
     }
@@ -148,9 +163,26 @@ export function tryDeleteRule(chain: Chain, ruleToDelete: Rule) {
 export function listRules(chain: Chain) : string[] {
     let output: string[] = [];
     let ruleset: Ruleset = rulesets[chain];
-    output.push("iptables -P " + Chain[chain] + " " + Action[ruleset.defPolicy]);
+    output.push("-P " + Chain[chain] + " " + Action[ruleset.defPolicy]);
     ruleset.rules.forEach(rule => {
         output.push(rule.command);
     });
     return output;
 }
+
+// export function setCommandStrs() {
+//     commandStrs = JSON.parse(localStorage.getItem("commandStrs")) as string[];
+//     for (var command of commandStrs) {
+//         processIPTables(splitByFlags(command), "iptables" + command);
+//     }
+// }
+
+// function updateCommandStrs() {
+//     commandStrs = [];
+//     for (var ruleset of rulesets) {
+//         for (var rule of ruleset.rules) {
+//             commandStrs.push(rule.command);
+//         }
+//     }
+//     localStorage.setItem("commandStrs", JSON.stringify(commandStrs));
+// }

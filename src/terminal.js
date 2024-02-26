@@ -1,4 +1,5 @@
-import { processCat, processIPTables, splitByFlags } from "./command.js";
+import { processCat, processCurl, processIPTables, splitByFlags } from "./command.js";
+import { commandStrs, flush } from "./rule.js";
 let hist = [];
 let indexAdjust = 0;
 function focusInput(ele) {
@@ -62,6 +63,10 @@ function processCommand(ele, command) {
         return;
     }
     else if (command.startsWith("iptables")) {
+        if (command === "iptables -F") {
+            flush();
+            return;
+        }
         try {
             let iptablesCommand = splitByFlags(command.substring("iptables".length));
             let output = processIPTables(iptablesCommand, command);
@@ -79,6 +84,19 @@ function processCommand(ele, command) {
     else if (command === "ifconfig") {
         // the unicode characters below are spaces
         pushLine(ele, "eth0: inet 192.168.0.10\u00A0\u00A0netmask 255.255.255.0\u00A0\u00A0broadcast 192.168.0.255");
+    }
+    else if (command.startsWith("curl")) {
+        try {
+            let output = processCurl(command);
+            if (output.length > 0) {
+                for (var line of output) {
+                    pushLine(ele, line);
+                }
+            }
+        }
+        catch (error) {
+            pushError(ele, error);
+        }
     }
     else if (command === "clear") {
         clear(ele);
@@ -115,4 +133,8 @@ Array.from(cliInputs).forEach(element => {
         }
     });
 });
+// setCommandStrs();
+for (var commandStr in commandStrs) {
+    processIPTables(splitByFlags(commandStr), "iptables" + commandStr);
+}
 //# sourceMappingURL=terminal.js.map

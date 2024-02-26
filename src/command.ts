@@ -1,5 +1,6 @@
-import { Rule, addToRulesets, tryReadIP, Action, Interface, tryReadPort, tryReadPorts, Chain, rulesets, tryDeleteRule, listRules } from "./rule.js";
-import { Protocol, State } from "./segment.js";
+import { Rule, addToRulesets, tryReadIP, Action, Interface, tryReadPort, tryReadPorts, Chain, rulesets, tryDeleteRule, listRules, flushChain } from "./rule.js";
+import { AddressPort, Network, Protocol, Segment, State, trySendSegment } from "./segment.js";
+import { getSite, knownSites } from "./servers.js";
 
 export class Arg {
     flag: string;
@@ -50,17 +51,56 @@ export function processCat(command: string) : string[] {
     }
 }
 
+export function processCurl(command: string) : string[] {
+    let arg = command.split('').slice("curl ".length).join('');
+    let urlParse = arg.match(/[A-Za-z]+\.[A-Za-z]+/);
+    const url = (urlParse[0] == null ? arg : urlParse[0]);
+
+    const pc = new Network([192,168,0,10]);
+    const dnsServer = new Network([1,1,1,1]);
+    const webServer = new Network([1,1,1,10]);
+
+    if (knownSites.includes(url)) {
+        let pcDNS = new AddressPort(pc, [53]);
+        let serverDNS = new AddressPort(dnsServer, [53]);
+        let dnsResolveOut = new Segment(Protocol["udp"], pcDNS, serverDNS);
+        let dnsResolveIn = new Segment(Protocol["udp"], serverDNS, pcDNS);
+        if (trySendSegment(dnsResolveOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(dnsResolveIn, Chain["INPUT"], Interface["eth0"])) {
+            // dns resolved
+            let pcHTTP = new AddressPort(pc, [80]);
+            let serverHTTP = new AddressPort(webServer, [80]);
+            let webOut = new Segment(Protocol["tcp"], pcHTTP, serverHTTP);
+            let webIn = new Segment(Protocol["tcp"], serverHTTP, pcHTTP);
+            if (trySendSegment(webOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(webIn, Chain["INPUT"], Interface["eth0"])) {
+                // web request worked
+                return getSite(url);
+            }
+            else {
+                throw "curl: (522) Connection timed out";
+            }
+        }
+        else {
+            throw "curl: (6) Could not resolve host: " + url;
+        }
+    }
+    else {
+        throw "curl: (6) Could not resolve host: " + url;
+    }
+}
+
 export function processIPTables(command: Command, commandStr: string) : string[] {
     let hasAppend = false;
     let hasTarget = false;
     let tryDelete = false;
+    let tryFlush = false;
     let hasExclusiveAction = false;
 
     let chainToDeleteFrom: Chain;
+    let chainToFlushFrom: Chain;
     let bypass = false;
 
     let output = [];
-    let rule: Rule = new Rule(commandStr);
+    let rule: Rule = new Rule(commandStr.substring("iptables".length));
 
     command.args.forEach((arg) => {
         switch (arg.flag) {
@@ -117,6 +157,19 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                 tryDelete = true;
                 bypass = true;
                 break;
+            case 'F':
+            case 'flush':
+                if (!Object.keys(Chain).includes(arg.value)) {
+                    throw "invalid chain. only INPUT and OUTPUT are supported.";
+                }
+                if (hasExclusiveAction) {
+                    throw "invalid combination of flags.";
+                }
+                hasExclusiveAction = true;
+                chainToFlushFrom = Chain[arg.value];
+                tryFlush = true;
+                bypass = true;
+                break;
             case 'i':
             case 'in-interface':
                 if (!Object.keys(Interface).includes(arg.value)) {
@@ -166,6 +219,24 @@ export function processIPTables(command: Command, commandStr: string) : string[]
             case 'destination-ports':
                 rule.source.ports = tryReadPorts(arg.value);
                 break;
+            case 'm':
+            case '--match':
+                if (arg.value != "conntrack") {
+                    throw "invalid match extension. only conntrack is supported.";
+                }
+                rule.conntrack = true;
+                break;
+            case 'ctstate':
+                const states = arg.value.split(',');
+                for (var state of states) {
+                    if (!Object.keys(State).includes(state)) {
+                        throw "invalid state.";
+                    }
+                }
+                for (var state of states) {
+                    rule.cstate.push(State[state]);
+                }
+                break;
             case 'j':
             case 'jump':
                 if (!Object.keys(Action).includes(arg.value)) {
@@ -186,6 +257,9 @@ export function processIPTables(command: Command, commandStr: string) : string[]
     }
     if (tryDelete) {
         tryDeleteRule(chainToDeleteFrom, rule);
+    }
+    else if (tryFlush) {
+        flushChain(chainToDeleteFrom);
     }
     return output;
 }

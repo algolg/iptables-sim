@@ -20,18 +20,22 @@ The following iptables flags have been implemented so far:
 | `--sports`/`--source-ports` | match packets by multiple source ports/port ranges |
 | `--dport`/`--destination-port` | match packets by destination port/port range |
 | `--dports`/`--destination-ports` | match packets by multiple destination ports/port ranges |
-| `-j`/`--jump`    | set target action for rule |
+| `-m`/`--match`    | used with argument `conntrack` to enable stateful inspection |
+| `--ctstate`       | match packets with the selected state |
+| `-j`/`--jump`     | set target action for rule |
 
 More detailed information on commands and their purposes can be found on the man pages for iptables
 
 ## Topology
 
-The PC on the right has an IPv4 address of 192.168.0.10, with a subnet mask of 255.255.255.0. This means that its network ranges from 192.168.0.0 to 192.168.0.255. The tester's IP address can be changed as you wish, but in order to isolate the PC and the testing interface, the tester's source IP cannot be from this same network.
+The main PC has an IPv4 address of 192.168.0.10 and a subnet mask of 255.255.255.0. This means that its network ranges from 192.168.0.0 to 192.168.0.255.
+
+Though it isn't visible, there is also a DNS server at 1.1.1.1 (accessible on UDP port 53), which will resolve `example.com` to a web server at 1.1.1.10. This web server can be accessed using HTTP (TCP 80).
+
+The tester's IP address can be changed as you wish, but in order to isolate all preconfigured networks from the testing interface, the tester's source IP cannot be from 192.168.0.0/24 or 1.1.1.0/24.
 
 You can assume that all routers are totally permissive, without any firewall rules configured on them. The only firewall rules in place will be the ones which you configure on the PC yourself.
 
 ## Limitations
 
 Since the host PC is an endpoint itself, it didn't seem important for me to include the default FORWARD chain. For this reason, the only chains that are supported are the INPUT and OUTPUT chains.
-
-I haven't yet added a way to track stateful connections, but I do hope to do so soon.
