@@ -99,13 +99,14 @@ html, body {
 }
 
 .form {
-    font-size: 0.9em;
+    font-family: inherit;
+    font-size: 1.0em;
     display: block;
     border-radius: 0.4vw;
     outline: 0.25vw transparent;
     border: transparent;
-    padding: 0.4vw;
-    margin: 0.4vw 0.4vw 1.6vw 0.4vw;
+    padding: 0.2vw 0.2vw 0.1vw 0.5vw;
+    margin: 0.2vw 0.2vw 1.0vw 0.2vw;
     background-color: var(--slate-dark);
     color: var(--white);
 }
@@ -117,7 +118,7 @@ html, body {
 .form[type="submit"] {
     padding-left: 0.6vw;
     padding-right: 0.8vw;
-    background-color: #495e90;
+    background-color: #3c5795;
 }
 .form[type="submit"]:hover {
     cursor: pointer;

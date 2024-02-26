@@ -5,7 +5,7 @@ let hist: string[] = [];
 let indexAdjust = 0;
 
 function focusInput(ele) {
-    ele.lastElementChild.firstElementChild.focus();
+    ele.lastElementChild.firstElementChild.focus({preventScroll:true});
 } (<any>window).focusInput = focusInput;
 
 function pushLine(ele, text: string, className = "line") {
