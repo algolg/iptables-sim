@@ -46,8 +46,8 @@ export function addToRulesets(rulesetChain: Chain, newRule: Rule) {
             return;
         }
     });
-    rulesets.push(new Ruleset(rulesetChain, newRule));
     // updateCommandStrs();
+    rulesets.push(new Ruleset(rulesetChain, newRule));
 }
 
 export function tryReadIntInRange(str: string, lowerBound: number, upperBound: number) : boolean {

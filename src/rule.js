@@ -1,4 +1,3 @@
-// import { processIPTables, splitByFlags } from "./command.js";
 import { AddressPort, Network, Protocol } from "./segment.js";
 export let commandStrs = [];
 export var Chain;
@@ -48,8 +47,8 @@ export function addToRulesets(rulesetChain, newRule) {
             return;
         }
     });
-    rulesets.push(new Ruleset(rulesetChain, newRule));
     // updateCommandStrs();
+    rulesets.push(new Ruleset(rulesetChain, newRule));
 }
 export function tryReadIntInRange(str, lowerBound, upperBound) {
     let hasChars = str.split("").some(character => isNaN(parseInt(character)));

@@ -1,5 +1,5 @@
 import { processCat, processCurl, processIPTables, splitByFlags } from "./command.js";
-import { commandStrs, flush } from "./rule.js";
+import { commandStrs, flush, /*setCommandStrs*/ } from "./rule.js";
 
 let hist: string[] = [];
 let indexAdjust = 0;

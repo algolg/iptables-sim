@@ -1,5 +1,5 @@
 import { processCat, processCurl, processIPTables, splitByFlags } from "./command.js";
-import { commandStrs, flush } from "./rule.js";
+import { commandStrs, flush, /*setCommandStrs*/ } from "./rule.js";
 let hist = [];
 let indexAdjust = 0;
 function focusInput(ele) {
