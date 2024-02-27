@@ -1,4 +1,4 @@
-import { Rule, addToRulesets, tryReadIP, Action, Interface, tryReadPort, tryReadPorts, Chain, rulesets, tryDeleteRule, listRules, flushChain } from "./rule.js";
+import { Action, addToRulesets, Chain, flushChain, Interface, listRules, Rule, rulesets, tryDeleteRule, tryReadIP, tryReadPort, tryReadPorts } from "./rule.js";
 import { AddressPort, Network, Protocol, Segment, State, trySendSegment } from "./segment.js";
 import { getSite, isIP, resolveDomain } from "./servers.js";
 export class Arg {
@@ -17,6 +17,7 @@ export class Command {
 export function splitByFlags(command) {
     command = command.replace(/--/g, "-");
     command = command.replace(/\"/g, "");
+    command = command.replace(/\s+/g, " ");
     const words = command.split(" -");
     const commandName = words[0];
     let args = [];
@@ -49,13 +50,11 @@ export function processCurl(command) {
     const dnsServer = new Network([1, 1, 1, 1]);
     const webServer = new Network([1, 1, 1, 10]);
     let ip = null;
-    let hasIP = false;
     let pcDNS = new AddressPort(pc, [53]);
     let serverDNS = new AddressPort(dnsServer, [53]);
     let dnsResolveOut = new Segment(Protocol["udp"], pcDNS, serverDNS);
     let dnsResolveIn = new Segment(Protocol["udp"], serverDNS, pcDNS);
     if (isIP(url)) {
-        hasIP = true;
         ip = tryReadIP(url);
     }
     if (ip != null || (trySendSegment(dnsResolveOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(dnsResolveIn, Chain["INPUT"], Interface["eth0"]))) {

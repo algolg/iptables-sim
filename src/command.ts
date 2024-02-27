@@ -25,6 +25,7 @@ export class Command {
 export function splitByFlags(command: string): Command {
     command = command.replace(/--/g, "-");
     command = command.replace(/\"/g, "");
+    command = command.replace(/\s+/g, " ");
     const words: string[] = command.split(" -");
     const commandName = words[0];
     let args: Arg[] = [];

@@ -1,3 +1,4 @@
+// import { processIPTables, splitByFlags } from "./command.js";
 import { AddressPort, Network, Protocol } from "./segment.js";
 export let commandStrs = [];
 export var Chain;
