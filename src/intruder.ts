@@ -50,13 +50,10 @@ intruderForm.onsubmit = function() {
 const intruderHistory = document.getElementById("intruderHistory");
 function pushToIntruderHistory(source: AddressPort, dest: AddressPort, protocol: Protocol, result: boolean) {
     let newLine = document.createElement("p");
-    let newLineResult = document.createElement("span");
     
-    newLineResult.innerText = result ? "✔" : "✕";
-    newLineResult.classList.add(result ? "segmentSuccess" : "segmentFailed");
+    newLine.classList.add(result ? "segmentSuccess" : "segmentFailed");
 
     newLine.classList.add("line");
-    newLine.innerText += " " + Protocol[protocol] + (protocol == Protocol["icmp"] ? "" : dest.ports[0]) + " from " + source.network.ipToString() + " to " + dest.network.ipToString();
-    newLine.prepend(newLineResult);
+    newLine.innerText += Protocol[protocol] + (protocol == Protocol["icmp"] ? "" : dest.ports[0]) + " from " + source.network.ipToString() + " to " + dest.network.ipToString();
     intruderHistory.prepend(newLine);
 }

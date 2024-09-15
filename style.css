@@ -8,23 +8,27 @@
     --error-red: #e61d1d;
 }
 
-bar {
+header {
     padding: 0.2rem 0.5rem 0.25rem 1rem;
     display: block;
     background-color: #1d2d46;
 }
-bar > div {
+header > div {
     display: flex;
     width: 100%;
 }
-bar > div > h1 {
+header > div > h1 {
     font-size: medium;
     margin: 0
 }
-bar > div > p {
+header > div > a {
+    color: var(--white);
     font-size: medium;
     text-align: right;
     margin: 0 0 0 auto;
+}
+header > div > a:hover {
+    color: var(--blue-light);
 }
 
 html, body {
@@ -71,18 +75,26 @@ html, body {
     padding: 0.5rem;
     border-radius: 0.45rem;
     background-color: #051926;
-    white-space: nowrap;
     overflow: scroll;
 }
 
-.segmentSuccess, .segmentFailed {
+.segmentSuccess::before,
+.segmentFailed::before {
+    display: inline-block;
     font-weight: 800;
+    margin-right: 0.5em;
+    width: 1em;
 }
-.segmentSuccess {
+.segmentSuccess::before {
+    content: '✔';
     color: #11bd81;
 }
-.segmentFailed {
+.segmentFailed::before {
+    content: '✕';
     color: #e24713;
+}
+.line {
+    text-indent: hanging 1.5em;
 }
 
 .terminal {
@@ -90,7 +102,6 @@ html, body {
     font-size: 1.25em;
     background-color: #051926;
     flex-direction: column-reverse;
-    white-space: nowrap;
     overflow: scroll;
 }
 
@@ -153,22 +164,34 @@ html, body {
     color: #a2a0cd;
 }
 
-.line, .lineCommand {
-    margin: 0;
+.lineCommand,
+.lineError {
+    word-break: break-all;
 }
 
 .lineError {
-    margin: 0;
     color: var(--error-red);
 }
 
+.line,
+.lineCommand,
+.lineError {
+    margin: 0;
+}
+
 .cliInput {
+    display: inline;
     background: transparent;
     border: none;
+    padding: 0;
     width: 100%;
     color: inherit;
     font-family: inherit;
     font-size: inherit;
+}
+
+.cliInput br {
+    display: none;
 }
 
 .cliInput:focus, .cliInput:focus-visible {

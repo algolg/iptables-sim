@@ -23,10 +23,10 @@ function pushToHistory(ele, text) {
     }
 }
 function addCommandToHistory(ele) {
-    const command = ele.value;
+    const command = ele.innerText.replaceAll("\n", "");
     pushToHistory(ele, command);
     processCommand(ele, command);
-    ele.value = "";
+    ele.innerText = "";
 }
 function clear(ele) {
     let histEle = ele.parentElement.previousElementSibling;
@@ -116,13 +116,13 @@ Array.from(cliInputs).forEach(element => {
             case "ArrowUp":
                 if (indexAdjust >= 0 && indexAdjust < hist.length) {
                     indexAdjust++;
-                    element.value = hist[hist.length - indexAdjust];
+                    element.innerText = hist[hist.length - indexAdjust];
                 }
                 break;
             case "ArrowDown":
                 if (indexAdjust > 1 && indexAdjust <= hist.length) {
                     indexAdjust--;
-                    element.value = hist[hist.length - indexAdjust];
+                    element.innerText = hist[hist.length - indexAdjust];
                 }
                 break;
             case "Enter":
