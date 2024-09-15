@@ -77,7 +77,7 @@ function processCommand(ele, command) {
             }
         }
         catch (error) {
-            pushError(ele, error, "ipTables");
+            pushError(ele, error, "iptables");
         }
         return;
     }

@@ -101,6 +101,8 @@ export function processIPTables(command: Command, commandStr: string) : string[]
     let chainToDeleteFrom: Chain;
     let chainToFlushFrom: Chain;
 
+    let expectPorts = false;
+
     let output = [];
     let rule: Rule = new Rule(commandStr.substring("iptables".length));
 
@@ -194,6 +196,9 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                     rule.source.ports = [];
                     rule.dest.ports = [];
                 }
+                else {
+                    expectPorts = true;
+                }
                 break;
             case 's':
             case 'source':
@@ -205,18 +210,30 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                 break;
             case 'sport':
             case 'source-port':
+                if (!expectPorts) {
+                    throw "port(s) unexpected. tcp or udp must be selected."
+                }
                 rule.source.ports = tryReadPort(arg.value);
                 break;
             case 'dport':
             case 'destination-port':
+                if (!expectPorts) {
+                    throw "port(s) unexpected. tcp or udp must be selected."
+                }
                 rule.source.ports = tryReadPort(arg.value);
                 break;
             case 'sports':
             case 'source-ports':
+                if (!expectPorts) {
+                    throw "port(s) unexpected. tcp or udp must be selected."
+                }
                 rule.source.ports = tryReadPorts(arg.value);
                 break;
             case 'dports':
             case 'destination-ports':
+                if (!expectPorts) {
+                    throw "port(s) unexpected. tcp or udp must be selected."
+                }
                 rule.source.ports = tryReadPorts(arg.value);
                 break;
             case 'm':
