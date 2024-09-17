@@ -93,7 +93,7 @@ html, body {
     content: '✕';
     color: #e24713;
 }
-.line {
+#intruderHistory > .line {
     text-indent: hanging 1.5em;
 }
 

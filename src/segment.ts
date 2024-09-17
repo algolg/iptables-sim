@@ -9,7 +9,7 @@
  * can be assumed to be automatically established
  */
 
-import { Action, Chain, Interface, getNetworkAddress, rulesets } from "./rule.js";
+import { Action, Chain, Interface, Module, getNetworkAddress, rulesets } from "./rule.js";
 
 export class Network {
     ip: number[];
@@ -25,11 +25,15 @@ export class Network {
     public toString() : string {
         return this.ipToString() + '/' + this.mask
     }
+    public isAny() : boolean {
+        return compareNetwork(this, new Network());
+    }
 }
 
 export class AddressPort {
     network: Network = new Network();
     ports: number[] = [];
+    portsStr: string;
 
     constructor(network: Network = new Network(), ports: number[] = []) {
         this.network = network;
@@ -74,7 +78,7 @@ function doesIpMatch(ip: number[], subnet: Network) : boolean {
 
 export function trySendSegment(segment: Segment, chain: Chain, in_inf: Interface = null, out_inf: Interface = null) : boolean {
     for (var rule of rulesets[chain].rules) {
-        if (rule.conntrack && rule.cstate.includes(State["ESTABLISHED"])) {
+        if (rule.module == Module.conntrack && rule.ctstate.includes(State["ESTABLISHED"])) {
             for (var [index,state] of stateTable.entries()) {
                 if (segment.protocol == state.protocol && compareAddressPort(segment.source, state.dest) && compareAddressPort(segment.dest, state.source)) {
                     stateTable.splice(index,1);

@@ -1,5 +1,5 @@
 // import { processIPTables, splitByFlags } from "./command.js";
-import { AddressPort, Network, Protocol } from "./segment.js";
+import { AddressPort, Network, Protocol, State } from "./segment.js";
 export let commandStrs = [];
 export var Chain;
 (function (Chain) {
@@ -19,15 +19,34 @@ export var Action;
     Action[Action["ACCEPT"] = 1] = "ACCEPT";
 })(Action || (Action = {}));
 ;
+export var Module;
+(function (Module) {
+    Module[Module["conntrack"] = 0] = "conntrack";
+    Module[Module["multiport"] = 1] = "multiport";
+})(Module || (Module = {}));
 export class Rule {
-    constructor(command) {
+    constructor() {
         this.protocol = Protocol["all"];
         this.source = new AddressPort();
         this.dest = new AddressPort();
-        this.conntrack = false;
-        this.cstate = [];
-        this.command = "";
-        this.command = command;
+        this.ctstate = [];
+    }
+    // command: string = "";
+    // constructor (command: string) {
+    //     this.command = command;
+    // }
+    toString() {
+        const output = "-A " + Chain[this.chain] +
+            (!this.source.network.isAny() ? " -s " + this.source.network.toString() : "") +
+            (!this.dest.network.isAny() ? " -d " + this.dest.network.toString() : "") +
+            (this.in_inf != null ? " -i " + Interface[this.in_inf] : "") +
+            (this.out_inf != null ? " -i " + Interface[this.out_inf] : "") +
+            (this.protocol != Protocol.all ? " -p " + Protocol[this.protocol] : "") +
+            (this.source.portsStr ? (this.source.ports.length > 1 ? " -m multiport --sports " : "--sport ") + this.source.portsStr : "") +
+            (this.dest.portsStr ? (this.dest.ports.length > 1 ? " -m multiport --dports " : "--dport ") + this.dest.portsStr : "") +
+            (this.module == Module.conntrack ? " -m conntrack --ctstate " + this.ctstate.map((s) => State[s]).join(",") : "") +
+            " -j " + Action[this.action];
+        return output;
     }
 }
 export class Ruleset {
@@ -49,7 +68,7 @@ export function addToRulesets(rulesetChain, newRule) {
         }
     });
     // updateCommandStrs();
-    rulesets.push(new Ruleset(rulesetChain, newRule));
+    // rulesets.push(new Ruleset(rulesetChain, newRule));
 }
 export function tryReadIntInRange(str, lowerBound, upperBound) {
     let hasChars = str.split("").some(character => isNaN(parseInt(character)));
@@ -130,14 +149,15 @@ export function tryReadPorts(portString) {
     });
     return ports;
 }
-export function flush() {
-    for (var ruleset of rulesets) {
-        ruleset.rules = [];
+export function flush(chain = null) {
+    if (chain == null) {
+        for (var ruleset of rulesets) {
+            ruleset.rules = [];
+        }
     }
-    // updateCommandStrs();
-}
-export function flushChain(chain) {
-    rulesets[chain].rules = [];
+    else {
+        rulesets[chain].rules = [];
+    }
     // updateCommandStrs();
 }
 export function tryDeleteRule(chain, ruleToDelete) {
@@ -153,14 +173,31 @@ export function tryDeleteRule(chain, ruleToDelete) {
     }
     throw "matching rule not found";
 }
-export function listRules(chain) {
+function listRulesForChain(chain) {
     let output = [];
     let ruleset = rulesets[chain];
     output.push("-P " + Chain[chain] + " " + Action[ruleset.defPolicy]);
     ruleset.rules.forEach(rule => {
-        output.push(rule.command);
+        output.push(rule.toString());
     });
     return output;
+}
+export function listRules(chain = null) {
+    if (chain == null) {
+        let output = [];
+        for (var ruleset of rulesets) {
+            output.push("-P " + Chain[ruleset.chain] + " " + Action[ruleset.defPolicy]);
+        }
+        for (var ruleset of rulesets) {
+            ruleset.rules.forEach(rule => {
+                output.push(rule.toString());
+            });
+        }
+        return output;
+    }
+    else {
+        return listRulesForChain(chain);
+    }
 }
 // export function setCommandStrs() {
 //     commandStrs = JSON.parse(localStorage.getItem("commandStrs")) as string[];

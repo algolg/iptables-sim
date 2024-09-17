@@ -8,7 +8,7 @@
  * Unless firewall rules prevent it, TCP sessions
  * can be assumed to be automatically established
  */
-import { Action, Chain, getNetworkAddress, rulesets } from "./rule.js";
+import { Action, Chain, Module, getNetworkAddress, rulesets } from "./rule.js";
 export class Network {
     constructor(ip = [0, 0, 0, 0], mask = 0) {
         this.ip = ip;
@@ -19,6 +19,9 @@ export class Network {
     }
     toString() {
         return this.ipToString() + '/' + this.mask;
+    }
+    isAny() {
+        return compareNetwork(this, new Network());
     }
 }
 export class AddressPort {
@@ -69,7 +72,7 @@ function doesIpMatch(ip, subnet) {
 }
 export function trySendSegment(segment, chain, in_inf = null, out_inf = null) {
     for (var rule of rulesets[chain].rules) {
-        if (rule.conntrack && rule.cstate.includes(State["ESTABLISHED"])) {
+        if (rule.module == Module.conntrack && rule.ctstate.includes(State["ESTABLISHED"])) {
             for (var [index, state] of stateTable.entries()) {
                 if (segment.protocol == state.protocol && compareAddressPort(segment.source, state.dest) && compareAddressPort(segment.dest, state.source)) {
                     stateTable.splice(index, 1);

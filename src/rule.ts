@@ -6,20 +6,35 @@ export let commandStrs: string[] = [];
 export enum Chain { INPUT = 0, OUTPUT = 1 };
 export enum Interface { lo = 0, eth0 = 1 };
 export enum Action { DROP = 0, ACCEPT = 1 };
+export enum Module { conntrack = 0, multiport = 1 }
 
 export class Rule {
+    chain: Chain;
     in_inf: Interface;
     out_inf: Interface;
     protocol: Protocol = Protocol["all"];
     source: AddressPort = new AddressPort();
     dest: AddressPort = new AddressPort();
-    conntrack: boolean = false;
-    cstate: State[] = [];
+    module: Module;
+    ctstate: State[] = [];
     action: Action;
-    command: string = "";
+    // command: string = "";
 
-    constructor (command: string) {
-        this.command = command;
+    // constructor (command: string) {
+    //     this.command = command;
+    // }
+    public toString() : string {
+        const output = "-A " + Chain[this.chain] +
+                (!this.source.network.isAny() ? " -s " + this.source.network.toString() : "") +
+                (!this.dest.network.isAny() ? " -d " + this.dest.network.toString() : "") +
+                (this.in_inf != null ? " -i " + Interface[this.in_inf] : "") +
+                (this.out_inf != null ? " -i " + Interface[this.out_inf] : "") +
+                (this.protocol != Protocol.all ? " -p " + Protocol[this.protocol] : "") +
+                (this.source.portsStr ? (this.source.ports.length > 1 ? " -m multiport --sports " : "--sport ") + this.source.portsStr : "") +
+                (this.dest.portsStr ? (this.dest.ports.length > 1 ? " -m multiport --dports " : "--dport ") + this.dest.portsStr : "") +
+                (this.module == Module.conntrack ? " -m conntrack --ctstate " + this.ctstate.map((s) => State[s]).join(",") : "") +
+                " -j " + Action[this.action];
+        return output;
     }
 }
 
@@ -47,7 +62,7 @@ export function addToRulesets(rulesetChain: Chain, newRule: Rule) {
         }
     });
     // updateCommandStrs();
-    rulesets.push(new Ruleset(rulesetChain, newRule));
+    // rulesets.push(new Ruleset(rulesetChain, newRule));
 }
 
 export function tryReadIntInRange(str: string, lowerBound: number, upperBound: number) : boolean {
@@ -134,15 +149,15 @@ export function tryReadPorts(portString: string) : number[] {
     return ports;
 }
 
-export function flush() {
-    for (var ruleset of rulesets) {
-        ruleset.rules = [];
+export function flush(chain: Chain = null) {
+    if (chain == null) {
+        for (var ruleset of rulesets) {
+            ruleset.rules = [];
+        }
     }
-    // updateCommandStrs();
-}
-
-export function flushChain(chain: Chain) {
-    rulesets[chain].rules = [];
+    else {
+        rulesets[chain].rules = [];
+    }
     // updateCommandStrs();
 }
 
@@ -160,14 +175,32 @@ export function tryDeleteRule(chain: Chain, ruleToDelete: Rule) {
     throw "matching rule not found";
 }
 
-export function listRules(chain: Chain) : string[] {
+function listRulesForChain(chain: Chain) : string[] {
     let output: string[] = [];
     let ruleset: Ruleset = rulesets[chain];
     output.push("-P " + Chain[chain] + " " + Action[ruleset.defPolicy]);
     ruleset.rules.forEach(rule => {
-        output.push(rule.command);
+        output.push(rule.toString());
     });
     return output;
+}
+
+export function listRules(chain: Chain = null) : string[] {
+    if (chain == null) {
+        let output: string[] = [];
+        for (var ruleset of rulesets) {
+            output.push("-P " + Chain[ruleset.chain] + " " + Action[ruleset.defPolicy]);
+        }
+        for (var ruleset of rulesets) {
+            ruleset.rules.forEach(rule => {
+                output.push(rule.toString());
+            });
+        }
+        return output;
+    }
+    else {
+        return listRulesForChain(chain);
+    }
 }
 
 // export function setCommandStrs() {

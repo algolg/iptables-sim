@@ -1,8 +1,8 @@
-import { Action, addToRulesets, Chain, flushChain, Interface, listRules, Rule, rulesets, tryDeleteRule, tryReadIP, tryReadPort, tryReadPorts } from "./rule.js";
+import { Action, addToRulesets, Chain, flush, Interface, listRules, Module, Rule, rulesets, tryDeleteRule, tryReadIP, tryReadPort, tryReadPorts } from "./rule.js";
 import { AddressPort, Network, Protocol, Segment, State, trySendSegment } from "./segment.js";
 import { getSite, isIP, resolveDomain } from "./servers.js";
 
-export class Arg {
+export class Flag {
     flag: string;
     value: string;
 
@@ -14,37 +14,57 @@ export class Arg {
 
 export class Command {
     commandName: string;
-    args: Arg[] = [];
+    flags: Flag[] = [];
+    arg: string = null;
 
-    constructor(commandName: string, args: Arg[]) {
+    constructor(commandName: string, flags: Flag[], arg = null) {
         this.commandName = commandName;
-        this.args = args;
+        this.flags = flags;
+        this.arg = arg;
     }
 }
 
-export function splitByFlags(command: string): Command {
-    command = command.replace(/--/g, "-");
-    command = command.replace(/\"/g, "");
-    command = command.replace(/\s+/g, " ");
-    const words: string[] = command.split(" -");
+export function getCommandName(command: string): string {
+    return command.split(/\s+/)[0]
+}
+
+export function splitByFlags(command: string, expectArg = true): Command {
+    const words: string[] = command.split(/\s+/);
     const commandName = words[0];
-    let args: Arg[] = [];
+    let flags: Flag[] = [];
+    let arg = null;
     for (let i = 1; i < words.length; i++) {
-        const tempArgs: string[] = words[i].split(" ")
-        if (tempArgs.length < 2) {
-            throw "options require arguments";
+        // flags start with a hyphen
+        if (/^-.+$/.test(words[i])) {
+            const flag = words[i].match(/^.+?((?==)|$)/)[0];
+            const wordsString = words.slice(i).join(" ").slice(flag.length + 1).trim()
+            const value = wordsString.startsWith("\"") ?
+                // selects from start quote to end quote, ignoring any escaped quotes (\")
+                wordsString.match(/^".*?([^\\]")/)[0].slice(1,-1) :
+                // selects any string that isn't a flag; if none exists, return null
+                (wordsString.match(/^[^-]\S*/) ?? [null])[0];
+            flags.push(new Flag(flag, value))
+            if (value != null) {
+                i += value.trim().split(/\s+/).length;
+            }
         }
-        args.push(new Arg(tempArgs[0], tempArgs.slice(1).join(',')));
+        else {
+            if (arg == null) {
+                arg = words[i];
+            }
+            else {
+                throw "unexpected argument: " + words[i];
+            }
+        }
     }
-    return new Command(commandName, args);
+    return new Command(commandName, flags, arg)
 }
 
 export function processCat(command: string) : string[] {
     const file = command.split('').slice("cat ".length).join('');
     if (file == "README") {
         let output: string[] = [];
-        output.push("iptables-sim is a simple web-based simulator for basic iptables firewall");
-        output.push("commands, which can be accessed at https://algolg.github.io/iptables-sim.");
+        output.push("iptables-sim is a simple web-based simulator for basic iptables firewall commands, which can be accessed at https://algolg.github.io/iptables-sim.");
         return output;
     }
     else {
@@ -92,7 +112,7 @@ export function processCurl(command: string) : string[] {
     }
 }
 
-export function processIPTables(command: Command, commandStr: string) : string[] {
+export function processIPTables(command: Command) : string[] {
     let hasExclusiveAction = false;
     let action: string = null;
 
@@ -102,14 +122,15 @@ export function processIPTables(command: Command, commandStr: string) : string[]
     let chainToFlushFrom: Chain;
 
     let expectPorts = false;
+    let expectArg = false;
 
     let output = [];
-    let rule: Rule = new Rule(commandStr.substring("iptables".length));
+    let rule: Rule = new Rule();
 
-    command.args.forEach((arg) => {
+    command.flags.forEach((arg) => {
         switch (arg.flag) {
-            case 'A':
-            case 'append':
+            case '-A':
+            case '--append':
                 if (!Object.keys(Chain).includes(arg.value)) {
                     throw "invalid chain. only INPUT and OUTPUT are supported.";
                 }
@@ -119,26 +140,27 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                 hasExclusiveAction = true;
                 action = "append";
                 chainToAppendTo = Chain[arg.value];
+                rule.chain = chainToAppendTo;
                 break;
-            case 'P':
-            case 'policy':
-                const parseArr = arg.value.split(',');
-                if (parseArr.length != 2 || !Object.keys(Action).includes(parseArr[1])) {
+            case '-P':
+            case '--policy':
+                if (command.arg == null || !Object.keys(Action).includes(command.arg)) {
                     throw "invalid default policy.";
                 }
-                if (!Object.keys(Chain).includes(parseArr[0])) {
+                if (!Object.keys(Chain).includes(arg.value)) {
                     throw "invalid chain. only INPUT and OUTPUT are supported.";
                 }
                 if (hasExclusiveAction) {
                     throw "invalid combination of flags.";
                 }
+                expectArg = true;
                 hasExclusiveAction = true;
                 action = "policy";
-                rulesets[Chain[parseArr[0]]].defPolicy = Action[parseArr[1]];
+                rulesets[Chain[arg.value]].defPolicy = Action[command.arg];
                 break;
-            case 'S':
-            case 'list-rules':
-                if (!Object.keys(Chain).includes(arg.value)) {
+            case '-S':
+            case '--list-rules':
+                if (arg.value != null && !Object.keys(Chain).includes(arg.value)) {
                     throw "invalid chain. only INPUT and OUTPUT are supported.";
                 }
                 if (hasExclusiveAction) {
@@ -148,8 +170,8 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                 action = "listrules"
                 output = listRules(Chain[arg.value]);
                 break;
-            case 'D':
-            case 'delete':
+            case '-D':
+            case '--delete':
                 if (!Object.keys(Chain).includes(arg.value)) {
                     throw "invalid chain. only INPUT and OUTPUT are supported.";
                 }
@@ -160,9 +182,9 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                 action = "delete";
                 chainToDeleteFrom = Chain[arg.value];
                 break;
-            case 'F':
-            case 'flush':
-                if (!Object.keys(Chain).includes(arg.value)) {
+            case '-F':
+            case '--flush':
+                if (arg.value != null && !Object.keys(Chain).includes(arg.value)) {
                     throw "invalid chain. only INPUT and OUTPUT are supported.";
                 }
                 if (hasExclusiveAction) {
@@ -172,27 +194,27 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                 action = "flush";
                 chainToFlushFrom = Chain[arg.value];
                 break;
-            case 'i':
-            case 'in-interface':
+            case '-i':
+            case '--in-interface':
                 if (!Object.keys(Interface).includes(arg.value)) {
                     throw "invalid interface";
                 }
                 rule.in_inf = Interface[arg.value];
                 break;
-            case 'o':
-            case 'out-interface':
+            case '-o':
+            case '--out-interface':
                 if (!Object.keys(Interface).includes(arg.value)) {
                     throw "invalid interface";
                 }
                 rule.out_inf = Interface[arg.value];
                 break;
-            case 'p':
-            case 'protocol':
-                if (!Object.keys(Protocol).includes(arg.value)) {
+            case '-p':
+            case '--protocol':
+                if (!Object.keys(Protocol).includes(arg.value.toLowerCase())) {
                     throw "invalid protocol";
                 }
-                rule.protocol = Protocol[arg.value];
-                if (arg.value == "icmp") {
+                rule.protocol = Protocol[arg.value.toLowerCase()];
+                if (arg.value.toLowerCase() == "icmp") {
                     rule.source.ports = [];
                     rule.dest.ports = [];
                 }
@@ -200,50 +222,63 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                     expectPorts = true;
                 }
                 break;
-            case 's':
-            case 'source':
+            case '-s':
+            case '--source':
                 rule.source.network = tryReadIP(arg.value);
                 break;
-            case 'd':
-            case 'destination':
+            case '-d':
+            case '--destination':
                 rule.dest.network = tryReadIP(arg.value);
                 break;
-            case 'sport':
-            case 'source-port':
+            case '--sport':
+            case '--source-port':
                 if (!expectPorts) {
-                    throw "port(s) unexpected. tcp or udp must be selected."
+                    throw "port(s) unexpected. tcp or udp must be selected.";
                 }
                 rule.source.ports = tryReadPort(arg.value);
+                rule.source.portsStr = arg.value;
                 break;
-            case 'dport':
-            case 'destination-port':
+            case '--dport':
+            case '--destination-port':
                 if (!expectPorts) {
-                    throw "port(s) unexpected. tcp or udp must be selected."
+                    throw "port(s) unexpected. tcp or udp must be selected.";
                 }
-                rule.source.ports = tryReadPort(arg.value);
+                rule.dest.ports = tryReadPort(arg.value);
+                rule.dest.portsStr = arg.value;
                 break;
-            case 'sports':
-            case 'source-ports':
-                if (!expectPorts) {
-                    throw "port(s) unexpected. tcp or udp must be selected."
+            case '--sports':
+            case '--source-ports':
+                if (rule.module != Module.multiport) {
+                    throw `invalid flag ${arg.flag}. multiport module must be selected first.`;
                 }
-                rule.source.ports = tryReadPorts(arg.value);
-                break;
-            case 'dports':
-            case 'destination-ports':
                 if (!expectPorts) {
-                    throw "port(s) unexpected. tcp or udp must be selected."
+                    throw "port(s) unexpected. tcp or udp must be selected.";
                 }
                 rule.source.ports = tryReadPorts(arg.value);
+                rule.source.portsStr = arg.value;
                 break;
-            case 'm':
+            case '--dports':
+            case '--destination-ports':
+                if (rule.module != Module.multiport) {
+                    throw `invalid flag ${arg.flag}. multiport module must be selected first.`;
+                }
+                if (!expectPorts) {
+                    throw "port(s) unexpected. tcp or udp must be selected.";
+                }
+                rule.dest.ports = tryReadPorts(arg.value);
+                rule.dest.portsStr = arg.value;
+                break;
+            case '-m':
             case '--match':
-                if (arg.value != "conntrack") {
-                    throw "invalid match extension. only conntrack is supported.";
+                if (!Object.keys(Module).includes(arg.value.toLowerCase())) {
+                    throw "invalid match extension. only conntrack and multiport are supported.";
                 }
-                rule.conntrack = true;
+                rule.module = Module[arg.value.toLowerCase()];
                 break;
-            case 'ctstate':
+            case '--ctstate':
+                if (rule.module != Module.conntrack) {
+                    throw `invalid flag ${arg.flag}. conntrack module must be selected first.`;
+                }
                 const states = arg.value.split(',');
                 for (var state of states) {
                     if (!Object.keys(State).includes(state)) {
@@ -251,11 +286,11 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                     }
                 }
                 for (var state of states) {
-                    rule.cstate.push(State[state]);
+                    rule.ctstate.push(State[state]);
                 }
                 break;
-            case 'j':
-            case 'jump':
+            case '-j':
+            case '--jump':
                 if (!Object.keys(Action).includes(arg.value)) {
                     throw "invalid target";
                 }
@@ -266,6 +301,12 @@ export function processIPTables(command: Command, commandStr: string) : string[]
                 throw "unknown flag: " + arg.flag;
         }
     });
+    if (!expectArg && command.arg != null) {
+        throw "unexpected argument: " + command.arg;
+    }
+    if (rule.module == Module.conntrack && rule.ctstate.length == 0) {
+        throw "multiport module expects an option"
+    }
     switch (action) {
         case "append":
             if (!hasTarget) {
@@ -280,7 +321,7 @@ export function processIPTables(command: Command, commandStr: string) : string[]
             tryDeleteRule(chainToDeleteFrom, rule);
             return output;
         case "flush":
-            flushChain(chainToFlushFrom);
+            flush(chainToFlushFrom);
             return output;
         case null:
             throw "no command specified"
