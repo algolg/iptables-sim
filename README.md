@@ -1,6 +1,6 @@
 # iptables-sim
 
-iptables-sim is a simple web-based simulator for basic iptables firewall commands, which can be accessed at [https://algolg.github.io/iptables-sim/](https://algolg.github.io/iptables-sim/).
+iptables-sim is a simple web-based simulator for basic iptables firewall commands, which can be accessed at [https://akhilguntur.com/iptables-sim/](https://akhilguntur.com/iptables-sim/).
 
 The right side of the simulator shows a host PC's bash terminal, where iptables commands may be executed; this PC will have an IP address of 192.168.0.10/24. The left side displays a testing interface, where an outside host can attempt to initiate connections to the PC.
 

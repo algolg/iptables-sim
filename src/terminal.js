@@ -1,5 +1,5 @@
-import { processCat, processCurl, processIPTables, getCommandName, splitByFlags } from "./command.js";
-import { commandStrs, flush, /*setCommandStrs*/ } from "./rule.js";
+import { processCat, processCurl, processIPTables, getCommandName, processNslookup } from "./command.js";
+import { commandStrs, } from "./rule.js";
 let hist = [];
 let indexAdjust = 0;
 function focusInput(ele) {
@@ -67,7 +67,7 @@ function processCommand(ele, command) {
             return;
         case 'iptables':
             try {
-                const output = processIPTables(splitByFlags(command));
+                const output = processIPTables(command);
                 pushLines(ele, output);
             }
             catch (error) {
@@ -77,6 +77,15 @@ function processCommand(ele, command) {
         case 'ifconfig':
             // the unicode characters below are spaces
             pushLine(ele, "eth0: inet 192.168.0.10\u00A0\u00A0netmask 255.255.255.0\u00A0\u00A0broadcast 192.168.0.255");
+            return;
+        case 'nslookup':
+            try {
+                const output = processNslookup(command);
+                pushLines(ele, output);
+            }
+            catch (error) {
+                pushError(ele, error, "nslookup");
+            }
             return;
         case 'curl':
             try {
@@ -96,78 +105,6 @@ function processCommand(ele, command) {
         default:
             pushError(ele, "command not found");
             return;
-    }
-}
-function processCommandOld(ele, command) {
-    if (command == "") {
-        // empty command is ok
-        return;
-    }
-    else if (command.startsWith("ls")) {
-        pushLine(ele, "README");
-    }
-    else if (command.startsWith("cat")) {
-        try {
-            let output = processCat(command);
-            if (output.length > 0) {
-                for (var line of output) {
-                    pushLine(ele, line);
-                }
-            }
-        }
-        catch (error) {
-            pushError(ele, error, "cat");
-        }
-    }
-    else if (command.startsWith("sudo")) {
-        processCommand(ele, command.substring("sudo".length).trim());
-        return;
-    }
-    else if (command.startsWith("iptables")) {
-        if (command === "iptables -F") {
-            flush();
-            return;
-        }
-        try {
-            let iptablesCommand = splitByFlags(command.substring("iptables".length));
-            let output = processIPTables(iptablesCommand);
-            if (output.length > 0) {
-                for (var line of output) {
-                    pushLine(ele, line);
-                }
-            }
-        }
-        catch (error) {
-            pushError(ele, error, "iptables");
-        }
-        return;
-    }
-    else if (command === "ifconfig") {
-        // the unicode characters below are spaces
-        pushLine(ele, "eth0: inet 192.168.0.10\u00A0\u00A0netmask 255.255.255.0\u00A0\u00A0broadcast 192.168.0.255");
-    }
-    else if (command.startsWith("curl")) {
-        try {
-            let output = processCurl(command);
-            if (output.length > 0) {
-                for (var line of output) {
-                    pushLine(ele, line);
-                }
-            }
-        }
-        catch (error) {
-            pushError(ele, error, "curl");
-        }
-    }
-    else if (command === "clear") {
-        clear(ele);
-    }
-    else if (command === "history") {
-        listHistory(ele);
-    }
-    else {
-        pushError(ele, "command not found...");
-        return;
     }
 }
 let cliInputs = document.getElementsByClassName("cliInput");
@@ -215,6 +152,6 @@ Array.from(cliInputs).forEach(element => {
 });
 // setCommandStrs();
 for (var commandStr in commandStrs) {
-    processIPTables(splitByFlags(commandStr));
+    processIPTables(commandStr);
 }
 //# sourceMappingURL=terminal.js.map

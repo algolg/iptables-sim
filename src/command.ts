@@ -65,13 +65,25 @@ export function processCat(command: string) : string[] {
     const file = command.split('').slice("cat ".length).join('');
     if (file == "README") {
         let output: string[] = [];
-        output.push("iptables-sim is a simple web-based simulator for basic iptables firewall commands, which can be accessed at https://algolg.github.io/iptables-sim.");
+        output.push("iptables-sim is a simple web-based simulator for basic iptables firewall commands, which can be accessed at https://akhilguntur.com/iptables-sim.");
         openModal('infoModal');
         return output;
     }
     else {
         throw "cat: " + file + ": no such file or directory"
     }
+}
+
+export function processNslookup(command: string) : string[] {
+    const arg = splitByFlags(command).arg;
+    const address: string = resolveDomain(arg).ipToString();
+    let output: string[] = []
+    output.push("Server:\t1.1.1.1");
+    output.push("Address:\t1.1.1.1#53");
+    output.push("\n");
+    output.push("Name:\t" + arg);
+    output.push("Address:\t" + address);
+    return output;
 }
 
 export function processCurl(command: string) : string[] {
@@ -114,7 +126,9 @@ export function processCurl(command: string) : string[] {
     }
 }
 
-export function processIPTables(command: Command) : string[] {
+export function processIPTables(command: string) : string[] {
+    const cmdSplit = splitByFlags(command);
+
     let hasExclusiveAction = false;
     let action: string = null;
 
@@ -129,7 +143,7 @@ export function processIPTables(command: Command) : string[] {
     let output = [];
     let rule: Rule = new Rule();
 
-    command.flags.forEach((arg) => {
+    cmdSplit.flags.forEach((arg) => {
         switch (arg.flag) {
             case '-A':
             case '--append':
@@ -146,7 +160,7 @@ export function processIPTables(command: Command) : string[] {
                 break;
             case '-P':
             case '--policy':
-                if (command.arg == null || !Object.keys(Action).includes(command.arg)) {
+                if (cmdSplit.arg == null || !Object.keys(Action).includes(cmdSplit.arg)) {
                     throw "invalid default policy.";
                 }
                 if (!Object.keys(Chain).includes(arg.value)) {
@@ -158,7 +172,7 @@ export function processIPTables(command: Command) : string[] {
                 expectArg = true;
                 hasExclusiveAction = true;
                 action = "policy";
-                rulesets[Chain[arg.value]].defPolicy = Action[command.arg];
+                rulesets[Chain[arg.value]].defPolicy = Action[cmdSplit.arg];
                 break;
             case '-S':
             case '--list-rules':
@@ -303,8 +317,8 @@ export function processIPTables(command: Command) : string[] {
                 throw "unknown flag: " + arg.flag;
         }
     });
-    if (!expectArg && command.arg != null) {
-        throw "unexpected argument: " + command.arg;
+    if (!expectArg && cmdSplit.arg != null) {
+        throw "unexpected argument: " + cmdSplit.arg;
     }
     if (rule.module == Module.conntrack && rule.ctstate.length == 0) {
         throw "multiport module expects an option"
@@ -326,7 +340,7 @@ export function processIPTables(command: Command) : string[] {
             flush(chainToFlushFrom);
             return output;
         case null:
-            throw "no command specified"
+            throw "no cmdSplit specified"
     }
     return output;
 }

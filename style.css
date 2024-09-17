@@ -1,4 +1,6 @@
 :root {
+    --bg: #2d3951;
+    --header: #1d2d46;
     --white: #fcfdff;
     --white-blue: #e1eded;
     --white-dark: #c4c8d2;
@@ -6,21 +8,33 @@
     --slate-dark: #6678a2;
     --blue-light: #baceff;
     --error-red: #e61d1d;
+    --terminal: #051926;
+    --shadow: #33457233;
+}
+
+code,
+pre {
+    font-family: "IBM Plex Mono", monospace;
 }
 
 header {
+    display: block;
+    height: 30px;
+}
+
+header > div {
     display: grid;
     padding: 0.2rem 0.5rem 0.25rem 1rem;
-    background-color: #1d2d46;
+    background-color: var(--header);
     grid-template-columns: 33% 34% 33%;
 }
-header > div:nth-child(1) {
+header > div > div:nth-child(1) {
     text-align: left;
 }
-header > div:nth-child(2) {
+header > div > div:nth-child(2) {
     text-align: center;
 }
-header > div:nth-child(3) {
+header > div > div:nth-child(3) {
     text-align: right;
 }
 header h1 {
@@ -54,33 +68,35 @@ header a:hover {
 
 html, body {
     margin: 0;
-    font-family: "Source Sans 3", sans-serif;
-    background-color: #2d3951;
+    font-family: "IBM Plex Sans", sans-serif;
+    background-color: var(--bg);
     color: var(--white-blue);
 }
 .mainBody {
-    margin: 0.75rem 0.8rem 0.4rem 0.8rem;
+    height: calc(100vh - 30px);
 }
 
 .gridContainer {
     display: grid;
     grid-template-columns: 35% 65%;
+    height: 100%;
 }
 
 .window {
-    /* width: 36rem; */
-    margin: 0.5rem;
-    height: 84vh;
     border-radius: 0.9rem;
     padding: 1rem;
-    overflow: auto;
-    box-shadow: 2.5rem 2.5rem 50px #9ea5ff13;
+    overflow: scroll;
+}
+.window:nth-child(1) {
+    margin: 1rem 0.5rem 1rem 1rem;
+}
+.window:nth-child(2) {
+    margin: 1rem 1rem 1rem 0.5rem;
 }
 
 .intruderInterface {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     font-size: 1.5em;
     font-weight: 600;
     background-color: var(--slate);
@@ -92,10 +108,11 @@ html, body {
     font-weight: 400;
     font-size: 0.75em;
     height: 100%;
+    min-height: 4em;
     color: var(--slate-dark);
     padding: 0.5rem;
     border-radius: 0.45rem;
-    background-color: #051926;
+    background-color: var(--terminal);
     overflow: scroll;
 }
 
@@ -108,11 +125,11 @@ html, body {
 }
 .segmentSuccess::before {
     content: '✔';
-    color: #11bd81;
+    color: mediumseagreen;
 }
 .segmentFailed::before {
     content: '✕';
-    color: #e24713;
+    color: red;
 }
 #intruderHistory > .line {
     text-indent: hanging 1.5em;
@@ -121,9 +138,8 @@ html, body {
 .terminal {
     font-family: "IBM Plex Mono", monospace;
     font-size: 1.25em;
-    background-color: #051926;
+    background-color: var(--terminal);
     flex-direction: column-reverse;
-    overflow: scroll;
 }
 
 .terminal:hover {
@@ -132,12 +148,12 @@ html, body {
 
 .form {
     font-family: inherit;
-    font-size: 1.0em;
+    font-size: 0.9em;
     display: block;
     border-radius: 0.4rem;
     outline: 0.25rem transparent;
     border: transparent;
-    padding: 0.2rem 0.2rem 0.1rem 0.5rem;
+    padding: 0.3rem 0.4rem;
     margin: 0.2rem 0.2rem 1.0rem 0.2rem;
     background-color: var(--slate-dark);
     color: var(--white);
@@ -145,7 +161,7 @@ html, body {
 .form:focus {
     outline: 0.25rem solid var(--blue-light);
     border: #8177d3ee;
-    box-shadow: 10px 10px 20px #33457233;
+    box-shadow: 10px 10px 20px var(--shadow);
 }
 .form[type="submit"] {
     padding-left: 0.6rem;
@@ -250,13 +266,14 @@ html, body {
     max-height: calc(100vh - 100px);
     font-size: 1.1em;
     border-radius: 0.4rem;
-    box-shadow: 10px 10px 20px #33457233;
+    box-shadow: 10px 10px 20px var(--shadow);
     background-color: var(--slate-dark);
     padding: 1em;
     transition: background-color 0.5s;
 }
 .modalBody {
-    max-height: calc(100vh - 152px);
+    color: var(--white);
+    max-height: calc(100vh - 148px);
     overflow: scroll;
 }
 .modalHeader {
@@ -264,16 +281,18 @@ html, body {
     width: 100%;
     border-bottom: 2px solid var(--slate);
 }
-.modalHeader > h1 {
+.modalTitle {
     margin-top: 0.5em;
     margin-bottom: 0;
+    margin-right: 0.2em;
     display: inline-block;
 }
-.modalHeader > span {
+.modalHeader > p {
+    height: min-content;
     font-size: 2em;
     margin: 0 0.3em 0 auto;
 }
-.modalHeader > span:hover {
+.modalHeader > p:hover {
     color: var(--blue-light);
     cursor: pointer;
 }
@@ -294,6 +313,21 @@ html, body {
     color: var(--white-dark);
 }
 
+.bracketLink {
+    color: var(--white);
+}
+.bracketLink:hover {
+    color: var(--blue-light);
+}
+.bracketLink::before {
+    content: '[';
+    color: var(--white-dark);
+}
+.bracketLink::after {
+    content: ']';
+    color: var(--white-dark);
+}
+
 @media only screen
 and (max-width: 800px) {
     .modalContent {
@@ -301,9 +335,19 @@ and (max-width: 800px) {
         margin-left: 16px;
     }
     .mainBody {
-        margin: 0.8rem 0.5rem 1.0rem 0.5rem;
+        max-height: none;
     }
     .gridContainer {
         display: initial;
-    }    
+    }
+    .window:nth-child(1),
+    .window:nth-child(2) {
+        margin: 1rem;
+    }
+    #intruderHistory {
+        height: 10em;
+    }
+    .terminal {
+        height: 20em;
+    }
 }

@@ -9,19 +9,22 @@
         <link rel="icon" href="./favicon.ico" type="image/x-icon">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&amp;family=Source+Sans+3:ital,wght@0,200..900;1,200..900&amp;display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
     </head>
     <body>
         <div id="infoModal" class="modal">
             <div class="modalContent">
                 <div class="modalHeader">
-                    <h1>iptables-sim</h1>
-                    <span onclick="closeModal('infoModal')">&times;</span>
+                    <span>
+                        <h1 class="modalTitle">iptables-sim</h1>
+                        <a href="https://github.com/algolg/iptables-sim" class="bracketLink">source</a>
+                    </span>
+                    <p onclick="closeModal('infoModal')">&times;</p>
                 </div>
                 <div class="modalBody">
                     <p>The terminal on the right side controls your PC (192.168.0.10). The panel on the left controls an "intruder" machine (10.0.0.10 by default).</p>
-                    <p>On your PC, you can run <code>iptables</code> commands to limit incoming/outgoing connections. On the intruder machine, you can attempt to make connections to your PC. Based on your firewall rules, these connections may succeed (<span style="color:#11bd81;">✔</span>) or fail (<span style="color:#e24713;">✕</span>).</p>
-                    <p>There is also a DNS server (1.1.1.1) and a Web server (1.1.1.10, example.com) that can be accessed from your PC via <code>cURL</code></p>
+                    <p>On your PC, you can run <code>iptables</code> commands to limit incoming/outgoing connections. On the intruder machine, you can attempt to make connections to your PC. Based on your firewall rules, these connections may succeed (<span style="color:mediumseagreen">✔</span>) or fail (<span style="color:red;">✕</span>).</p>
+                    <p>There is also a DNS server (1.1.1.1) and an HTTP Web server (1.1.1.10, example.com) that can be accessed from your PC via <code>cURL</code></p>
                     <h2>Topology</h2>
                     <div id="topology">
                         <pre>
@@ -46,13 +49,15 @@
         </div>
         <header>
             <div>
-                <h1>iptables-sim</h1>
-            </div>
-            <div>
-                <button id="infoBtn" onclick="openModal('infoModal')">readme</button>
-            </div>
-            <div>
-                <a href="https://www.akhilguntur.com/">algolg</a>
+                <div>
+                    <h1>iptables-sim</h1>
+                </div>
+                <div>
+                    <button id="infoBtn" onclick="openModal('infoModal')">readme</button>
+                </div>
+                <div>
+                    <a href="https://www.akhilguntur.com/">algolg</a>
+                </div>
             </div>
         </header>
         <div class="mainBody">

@@ -16,6 +16,7 @@ function setPortVisibility() {
 setPortVisibility();
 protocolInput.addEventListener("change", setPortVisibility);
 const intruderForm = document.forms["intruderForm"];
+const intruderHistory = document.getElementById("intruderHistory");
 intruderForm.addEventListener("submit", x => x.preventDefault());
 intruderForm.onsubmit = function () {
     let form = new FormData(intruderForm);
@@ -42,8 +43,8 @@ intruderForm.onsubmit = function () {
     }
     const sent = trySendSegment(segment, Chain["INPUT"], Interface["eth0"]);
     pushToIntruderHistory(source, dest, protocol, sent);
+    intruderHistory.scrollTop = 0;
 };
-const intruderHistory = document.getElementById("intruderHistory");
 function pushToIntruderHistory(source, dest, protocol, result) {
     let newLine = document.createElement("p");
     newLine.classList.add(result ? "segmentSuccess" : "segmentFailed");
