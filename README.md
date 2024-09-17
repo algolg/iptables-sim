@@ -20,7 +20,7 @@ The following iptables flags have been implemented so far:
 | `--sports`/`--source-ports` | match packets by multiple source ports/port ranges |
 | `--dport`/`--destination-port` | match packets by destination port/port range |
 | `--dports`/`--destination-ports` | match packets by multiple destination ports/port ranges |
-| `-m`/`--match`    | used with argument `conntrack` to enable stateful inspection |
+| `-m`/`--match`    | used with argument `conntrack` to enable stateful inspection or `multiport` to match multiple ports |
 | `--ctstate`       | match packets with the selected state |
 | `-j`/`--jump`     | set target action for rule |
 

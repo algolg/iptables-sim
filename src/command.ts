@@ -1,3 +1,4 @@
+import { openModal } from "./modal.js";
 import { Action, addToRulesets, Chain, flush, Interface, listRules, Module, Rule, rulesets, tryDeleteRule, tryReadIP, tryReadPort, tryReadPorts } from "./rule.js";
 import { AddressPort, Network, Protocol, Segment, State, trySendSegment } from "./segment.js";
 import { getSite, isIP, resolveDomain } from "./servers.js";
@@ -65,6 +66,7 @@ export function processCat(command: string) : string[] {
     if (file == "README") {
         let output: string[] = [];
         output.push("iptables-sim is a simple web-based simulator for basic iptables firewall commands, which can be accessed at https://algolg.github.io/iptables-sim.");
+        openModal('infoModal');
         return output;
     }
     else {
