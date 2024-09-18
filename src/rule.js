@@ -27,14 +27,10 @@ export var Module;
 export class Rule {
     constructor() {
         this.protocol = Protocol["all"];
-        this.source = new AddressPort();
-        this.dest = new AddressPort();
+        this.source = new AddressPort(new Network([0, 0, 0, 0], 0));
+        this.dest = new AddressPort(new Network([0, 0, 0, 0], 0));
         this.ctstate = [];
     }
-    // command: string = "";
-    // constructor (command: string) {
-    //     this.command = command;
-    // }
     toString() {
         const output = "-A " + Chain[this.chain] +
             (!this.source.network.isAny() ? " -s " + this.source.network.toString() : "") +
@@ -60,6 +56,12 @@ export class Ruleset {
     }
 }
 export var rulesets = [new Ruleset(Chain["INPUT"]), new Ruleset(Chain["OUTPUT"])];
+const allowAllRuleset = [new Ruleset(Chain["INPUT"]), new Ruleset(Chain["OUTPUT"])];
+export var machines = {
+    "192.168.0.10/32": rulesets,
+    "1.1.1.1/32": allowAllRuleset,
+    "1.1.1.10/32": allowAllRuleset
+};
 export function addToRulesets(rulesetChain, newRule) {
     rulesets.forEach((ruleset) => {
         if (ruleset.chain === rulesetChain) {

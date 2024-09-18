@@ -1,6 +1,6 @@
 import { openModal } from "./modal.js";
 import { Action, addToRulesets, Chain, flush, Interface, listRules, Module, Rule, rulesets, tryDeleteRule, tryReadIP, tryReadPort, tryReadPorts } from "./rule.js";
-import { AddressPort, Network, Protocol, Segment, State, trySendSegment } from "./segment.js";
+import { AddressPort, Network, Protocol, Segment, State, testConnection } from "./segment.js";
 import { getSite, isIP, resolveDomain } from "./servers.js";
 
 export class Flag {
@@ -76,20 +76,36 @@ export function processCat(command: string) : string[] {
 
 export function processNslookup(command: string) : string[] {
     const arg = splitByFlags(command).arg;
-    const address: string = resolveDomain(arg).ipToString();
-    let output: string[] = []
-    output.push("Server:\t1.1.1.1");
-    output.push("Address:\t1.1.1.1#53");
-    output.push("\n");
-    output.push("Name:\t" + arg);
-    output.push("Address:\t" + address);
-    return output;
+
+    const pcDNS = new AddressPort(new Network([192,168,0,10]), [53]);
+    const serverDNS = new AddressPort(new Network([1,1,1,1]), [53]);
+    const dnsResolveOut = new Segment(Protocol["udp"], pcDNS, serverDNS);
+
+    if (testConnection(dnsResolveOut)) {
+        const address: string = resolveDomain(arg).ipToString();
+
+        let output: string[] = []
+        output.push("Server:\t1.1.1.1");
+        output.push("Address:\t1.1.1.1#53");
+        output.push("\n");
+        output.push("Name:\t" + arg);
+        output.push("Address:\t" + address);
+        return output;
+    }
+    else {
+        throw "could not resolve host: " + arg;
+    }
 }
 
 export function processCurl(command: string) : string[] {
     let arg = command.split('').slice("curl ".length).join('');
-    let urlParse = arg.match(/[A-Za-z]+\.[A-Za-z]+/);
-    const url = (urlParse == null ? arg : urlParse[0]);
+    const uriParse = arg.match(/([A-Za-z]+\.)+[A-Za-z]+/);
+    const protocolParse = arg.match(/[A-Za-z]+(?=:\/\/)/);
+    const uri = (uriParse == null ? arg : uriParse[0]);
+    const protocol = (protocolParse == null ? null : protocolParse[0]);
+    if (protocol != null && protocol != "http" && protocol != "https") {
+        throw "protocol \"" + protocol + "\" not supported";
+    }
 
     const pc = new Network([192,168,0,10]);
     const dnsServer = new Network([1,1,1,1]);
@@ -97,23 +113,22 @@ export function processCurl(command: string) : string[] {
     
     let ip: Network = null;
 
-    let pcDNS = new AddressPort(pc, [53]);
-    let serverDNS = new AddressPort(dnsServer, [53]);
-    let dnsResolveOut = new Segment(Protocol["udp"], pcDNS, serverDNS);
-    let dnsResolveIn = new Segment(Protocol["udp"], serverDNS, pcDNS);
-    if (isIP(url)) {
-        ip = tryReadIP(url);
+    const pcDNS = new AddressPort(pc, [53]);
+    const serverDNS = new AddressPort(dnsServer, [53]);
+    const dnsResolveOut = new Segment(Protocol["udp"], pcDNS, serverDNS);
+
+    if (isIP(uri)) {
+        ip = tryReadIP(uri);
     }
-    if (ip != null || (trySendSegment(dnsResolveOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(dnsResolveIn, Chain["INPUT"], Interface["eth0"]))) {
+    if (ip != null || testConnection(dnsResolveOut)) {
         if (ip == null) {
-            ip = resolveDomain(url);
+            ip = resolveDomain(uri);
         }
         // dns resolved
-        let pcHTTP = new AddressPort(pc, [80]);
-        let serverHTTP = new AddressPort(webServer, [80]);
-        let webOut = new Segment(Protocol["tcp"], pcHTTP, serverHTTP);
-        let webIn = new Segment(Protocol["tcp"], serverHTTP, pcHTTP);
-        if (trySendSegment(webOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(webIn, Chain["INPUT"], Interface["eth0"])) {
+        const pcHTTP = new AddressPort(pc, [80]);
+        const serverHTTP = new AddressPort(webServer, [80]);
+        const webOut = new Segment(Protocol["tcp"], pcHTTP, serverHTTP);
+        if (testConnection(webOut)) {
             // web request worked
             return getSite(ip);
         }
@@ -122,7 +137,7 @@ export function processCurl(command: string) : string[] {
         }
     }
     else {
-        throw "could not resolve host: " + url;
+        throw "could not resolve host: " + uri;
     }
 }
 
@@ -176,6 +191,8 @@ export function processIPTables(command: string) : string[] {
                 break;
             case '-S':
             case '--list-rules':
+
+
                 if (arg.value != null && !Object.keys(Chain).includes(arg.value)) {
                     throw "invalid chain. only INPUT and OUTPUT are supported.";
                 }

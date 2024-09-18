@@ -22,6 +22,7 @@ export function isIP(potentialIP) {
 export function resolveDomain(domain) {
     switch (domain) {
         case "example.com":
+        case "www.example.com":
             return new Network([1, 1, 1, 10], 32);
         default:
             throw "could not resolve host: " + domain;

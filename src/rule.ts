@@ -13,16 +13,12 @@ export class Rule {
     in_inf: Interface;
     out_inf: Interface;
     protocol: Protocol = Protocol["all"];
-    source: AddressPort = new AddressPort();
-    dest: AddressPort = new AddressPort();
+    source: AddressPort = new AddressPort(new Network([0,0,0,0], 0));
+    dest: AddressPort = new AddressPort(new Network([0,0,0,0], 0));
     module: Module;
     ctstate: State[] = [];
     action: Action;
-    // command: string = "";
 
-    // constructor (command: string) {
-    //     this.command = command;
-    // }
     public toString() : string {
         const output = "-A " + Chain[this.chain] +
                 (!this.source.network.isAny() ? " -s " + this.source.network.toString() : "") +
@@ -52,6 +48,12 @@ export class Ruleset {
 }
 
 export var rulesets: Ruleset[] = [new Ruleset(Chain["INPUT"]), new Ruleset(Chain["OUTPUT"])];
+const allowAllRuleset: Ruleset[] = [new Ruleset(Chain["INPUT"]), new Ruleset(Chain["OUTPUT"])];
+export var machines: { [ip: string] : Ruleset[]; } = {
+    "192.168.0.10/32": rulesets,
+    "1.1.1.1/32": allowAllRuleset,
+    "1.1.1.10/32": allowAllRuleset
+};
 
 
 export function addToRulesets(rulesetChain: Chain, newRule: Rule) {

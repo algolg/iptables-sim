@@ -9,13 +9,13 @@
  * can be assumed to be automatically established
  */
 
-import { Action, Chain, Interface, Module, getNetworkAddress, rulesets } from "./rule.js";
+import { Action, Chain, Interface, Module, getNetworkAddress, machines } from "./rule.js";
 
 export class Network {
     ip: number[];
     mask: number;
 
-    constructor(ip: number[] = [0,0,0,0], mask: number = 0) {
+    constructor(ip: number[] = [0,0,0,0], mask: number = 32) {
         this.ip = ip;
         this.mask = mask;
     }
@@ -77,7 +77,11 @@ function doesIpMatch(ip: number[], subnet: Network) : boolean {
 }
 
 export function trySendSegment(segment: Segment, chain: Chain, in_inf: Interface = null, out_inf: Interface = null) : boolean {
-    for (var rule of rulesets[chain].rules) {
+    const rulesetsSearch = machines[segment.dest.network.toString()];
+    if (rulesetsSearch == null) {
+        return false;
+    }
+    for (var rule of rulesetsSearch[chain].rules) {
         if (rule.module == Module.conntrack && rule.ctstate.includes(State["ESTABLISHED"])) {
             for (var [index,state] of stateTable.entries()) {
                 if (segment.protocol == state.protocol && compareAddressPort(segment.source, state.dest) && compareAddressPort(segment.dest, state.source)) {
@@ -101,6 +105,12 @@ export function trySendSegment(segment: Segment, chain: Chain, in_inf: Interface
             }
         }
     }
-    tryAddToStateTable(segment, chain, rulesets[Chain["INPUT"]].defPolicy);
-    return rulesets[Chain["INPUT"]].defPolicy == Action["ACCEPT"];
+    tryAddToStateTable(segment, chain, rulesetsSearch[Chain["INPUT"]].defPolicy);
+    return rulesetsSearch[Chain["INPUT"]].defPolicy == Action["ACCEPT"];
+}
+
+// tries to send segment from source to dest (specified in segmentOut) along with dest to source (segmentIn)
+export function testConnection(segmentOut: Segment) : boolean {
+    const segmentIn = new Segment(segmentOut.protocol, segmentOut.dest, segmentOut.source);
+    return trySendSegment(segmentOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(segmentIn, Chain["INPUT"], Interface["eth0"])
 }

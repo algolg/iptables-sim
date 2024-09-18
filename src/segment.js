@@ -8,9 +8,9 @@
  * Unless firewall rules prevent it, TCP sessions
  * can be assumed to be automatically established
  */
-import { Action, Chain, Module, getNetworkAddress, rulesets } from "./rule.js";
+import { Action, Chain, Interface, Module, getNetworkAddress, machines } from "./rule.js";
 export class Network {
-    constructor(ip = [0, 0, 0, 0], mask = 0) {
+    constructor(ip = [0, 0, 0, 0], mask = 32) {
         this.ip = ip;
         this.mask = mask;
     }
@@ -71,7 +71,11 @@ function doesIpMatch(ip, subnet) {
     return getNetworkAddress(ip, subnet.mask).every((ele, i) => ele === subnet.ip[i]);
 }
 export function trySendSegment(segment, chain, in_inf = null, out_inf = null) {
-    for (var rule of rulesets[chain].rules) {
+    const rulesetsSearch = machines[segment.dest.network.toString()];
+    if (rulesetsSearch == null) {
+        return false;
+    }
+    for (var rule of rulesetsSearch[chain].rules) {
         if (rule.module == Module.conntrack && rule.ctstate.includes(State["ESTABLISHED"])) {
             for (var [index, state] of stateTable.entries()) {
                 if (segment.protocol == state.protocol && compareAddressPort(segment.source, state.dest) && compareAddressPort(segment.dest, state.source)) {
@@ -95,7 +99,12 @@ export function trySendSegment(segment, chain, in_inf = null, out_inf = null) {
             }
         }
     }
-    tryAddToStateTable(segment, chain, rulesets[Chain["INPUT"]].defPolicy);
-    return rulesets[Chain["INPUT"]].defPolicy == Action["ACCEPT"];
+    tryAddToStateTable(segment, chain, rulesetsSearch[Chain["INPUT"]].defPolicy);
+    return rulesetsSearch[Chain["INPUT"]].defPolicy == Action["ACCEPT"];
+}
+// tries to send segment from source to dest (specified in segmentOut) along with dest to source (segmentIn)
+export function testConnection(segmentOut) {
+    const segmentIn = new Segment(segmentOut.protocol, segmentOut.dest, segmentOut.source);
+    return trySendSegment(segmentOut, Chain["OUTPUT"], undefined, Interface["eth0"]) && trySendSegment(segmentIn, Chain["INPUT"], Interface["eth0"]);
 }
 //# sourceMappingURL=segment.js.map

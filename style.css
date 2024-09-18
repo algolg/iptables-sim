@@ -6,7 +6,7 @@
     --white-dark: #c4c8d2;
     --slate: #9fa4be;
     --slate-dark: #6678a2;
-    --blue-light: #baceff;
+    --blue-light: #94aded;
     --error-red: #e61d1d;
     --terminal: #051926;
     --shadow: #33457233;
@@ -15,6 +15,9 @@
 code,
 pre {
     font-family: "IBM Plex Mono", monospace;
+}
+pre {
+    line-height: 1.1em;
 }
 
 header {
