@@ -8,7 +8,7 @@
  * Unless firewall rules prevent it, TCP sessions
  * can be assumed to be automatically established
  */
-import { Action, Chain, Interface, Module, getNetworkAddress, machines } from "./rule.js";
+import { Action, Chain, Interface, Module, getMachineRuleset, getNetworkAddress } from "./rule.js";
 export class Network {
     constructor(ip = [0, 0, 0, 0], mask = 32) {
         this.ip = ip;
@@ -71,36 +71,40 @@ function doesIpMatch(ip, subnet) {
     return getNetworkAddress(ip, subnet.mask).every((ele, i) => ele === subnet.ip[i]);
 }
 export function trySendSegment(segment, chain, in_inf = null, out_inf = null) {
-    const rulesetsSearch = machines[segment.dest.network.toString()];
-    if (rulesetsSearch == null) {
+    const sourceRules = getMachineRuleset(segment.source.network.toString());
+    const destRules = getMachineRuleset(segment.dest.network.toString());
+    if (sourceRules == null || destRules == null) {
         return false;
     }
-    for (var rule of rulesetsSearch[chain].rules) {
-        if (rule.module == Module.conntrack && rule.ctstate.includes(State["ESTABLISHED"])) {
-            for (var [index, state] of stateTable.entries()) {
-                if (segment.protocol == state.protocol && compareAddressPort(segment.source, state.dest) && compareAddressPort(segment.dest, state.source)) {
-                    stateTable.splice(index, 1);
-                    return rule.action == Action["ACCEPT"];
-                }
-            }
-            continue;
-        }
-        if ((rule.in_inf == null || rule.in_inf == in_inf) && (rule.out_inf == null || rule.out_inf == out_inf)) {
-            if (doesIpMatch(segment.source.network.ip, rule.source.network) && doesIpMatch(segment.dest.network.ip, rule.dest.network)) {
-                if (rule.protocol == Protocol["all"] || segment.protocol == rule.protocol) {
-                    if (segment.protocol == Protocol["icmp"]) {
+    const chainsNeeded = [sourceRules[Chain["OUTPUT"]], destRules[Chain["INPUT"]]];
+    for (var rulesetsFound of chainsNeeded) {
+        for (var rule of rulesetsFound.rules) {
+            if (rule.module == Module.conntrack && rule.ctstate.includes(State["ESTABLISHED"])) {
+                for (var [index, state] of stateTable.entries()) {
+                    if (segment.protocol == state.protocol && compareAddressPort(segment.source, state.dest) && compareAddressPort(segment.dest, state.source)) {
+                        stateTable.splice(index, 1);
                         return rule.action == Action["ACCEPT"];
                     }
-                    if ((rule.source.ports.length == 0 || rule.source.ports.includes(segment.source.ports[0])) && (rule.dest.ports.length == 0 || rule.dest.ports.includes(segment.dest.ports[0]))) {
-                        tryAddToStateTable(segment, chain, rule.action);
-                        return rule.action == Action["ACCEPT"];
+                }
+                continue;
+            }
+            if ((rule.in_inf == null || rule.in_inf == in_inf) && (rule.out_inf == null || rule.out_inf == out_inf)) {
+                if (doesIpMatch(segment.source.network.ip, rule.source.network) && doesIpMatch(segment.dest.network.ip, rule.dest.network)) {
+                    if (rule.protocol == Protocol["all"] || segment.protocol == rule.protocol) {
+                        if (segment.protocol == Protocol["icmp"]) {
+                            return rule.action == Action["ACCEPT"];
+                        }
+                        if ((rule.source.ports.length == 0 || rule.source.ports.includes(segment.source.ports[0])) && (rule.dest.ports.length == 0 || rule.dest.ports.includes(segment.dest.ports[0]))) {
+                            tryAddToStateTable(segment, chain, rule.action);
+                            return rule.action == Action["ACCEPT"];
+                        }
                     }
                 }
             }
         }
     }
-    tryAddToStateTable(segment, chain, rulesetsSearch[Chain["INPUT"]].defPolicy);
-    return rulesetsSearch[Chain["INPUT"]].defPolicy == Action["ACCEPT"];
+    tryAddToStateTable(segment, chain, rulesetsFound.defPolicy);
+    return rulesetsFound.defPolicy == Action["ACCEPT"];
 }
 // tries to send segment from source to dest (specified in segmentOut) along with dest to source (segmentIn)
 export function testConnection(segmentOut) {

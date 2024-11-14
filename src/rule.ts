@@ -49,11 +49,19 @@ export class Ruleset {
 
 export var rulesets: Ruleset[] = [new Ruleset(Chain["INPUT"]), new Ruleset(Chain["OUTPUT"])];
 const allowAllRuleset: Ruleset[] = [new Ruleset(Chain["INPUT"]), new Ruleset(Chain["OUTPUT"])];
-export var machines: { [ip: string] : Ruleset[]; } = {
-    "192.168.0.10/32": rulesets,
-    "1.1.1.1/32": allowAllRuleset,
-    "1.1.1.10/32": allowAllRuleset
-};
+export function getMachineRuleset(ip: string) {
+    const sourceIpAddress = (<HTMLInputElement>document.getElementById("sourceIpAddress")).value;
+    switch(ip) {
+        case "192.168.0.10/32":
+            return rulesets;
+        case "1.1.1.1/32":
+        case "1.1.1.10/32":
+        case tryReadIP(sourceIpAddress).toString():
+            return allowAllRuleset;
+        default:
+            return null;
+    }
+}
 
 
 export function addToRulesets(rulesetChain: Chain, newRule: Rule) {
